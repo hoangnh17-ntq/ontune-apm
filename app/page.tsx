@@ -1,0 +1,215 @@
+"use client";
+
+import { useState } from 'react';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import ContextSidebar from '@/components/layout/ContextSidebar';
+import CompactTabBar from '@/components/layout/CompactTabBar';
+import { AppTab } from '@/types/tabs';
+import OverviewTab from '@/components/tabs/OverviewTab';
+import MonitorTab from '@/components/tabs/MonitorTab';
+import TransactionTab from '@/components/tabs/TransactionTab';
+import RumTab from '@/components/tabs/RumTab';
+import WasTab from '@/components/tabs/WasTab';
+import AnalysisTabRefactored from '@/components/tabs/AnalysisTabRefactored';
+import ReportTabRefactored from '@/components/tabs/ReportTabRefactored';
+import ConfigTab from '@/components/tabs/ConfigTab';
+import SelectApplicationView from '@/components/SelectApplicationView';
+import TopologyTab from '@/components/tabs/TopologyTab';
+import { APMTab } from '@/types/apm';
+
+export default function Home() {
+  const [appTabs, setAppTabs] = useState<AppTab[]>([
+    { id: 'demo-8101', appId: 'demo-8101', appName: 'Java APM Demo (8101)' }
+  ]);
+  const [activeAppTabId, setActiveAppTabId] = useState<string>('demo-8101');
+  const [projectSources, setProjectSources] = useState<string[]>(['proj-1']);
+  const [tabStates, setTabStates] = useState<Record<string, {
+    apmTab: APMTab;
+    activeFilters: any;
+    activeAction: string;
+  }>>({
+    'demo-8101': {
+      apmTab: 'transaction',
+      activeFilters: {},
+      activeAction: ''
+    }
+  });
+
+  const currentTabState = tabStates[activeAppTabId] || {
+    apmTab: 'transaction',
+    activeFilters: {},
+    activeAction: ''
+  };
+
+  const handleOpenApp = (appId: string, appName: string) => {
+    // Check if tab already exists
+    const existingTab = appTabs.find(t => t.appId === appId && !t.isOverview);
+    if (existingTab) {
+      setActiveAppTabId(existingTab.id);
+      return;
+    }
+
+    // Create new tab
+    const newTab: AppTab = {
+      id: `app-${appId}-${Date.now()}`,
+      appId,
+      appName
+    };
+
+    setAppTabs(prev => [...prev, newTab]);
+    setTabStates(prev => ({
+      ...prev,
+      [newTab.id]: {
+        apmTab: 'transaction',
+        activeFilters: {},
+        activeAction: ''
+      }
+    }));
+    setActiveAppTabId(newTab.id);
+  };
+
+  const handleCloseTab = (tabId: string) => {
+    const tabIndex = appTabs.findIndex(t => t.id === tabId);
+    if (tabIndex === -1) return;
+
+    const newTabs = appTabs.filter(t => t.id !== tabId);
+    setAppTabs(newTabs);
+
+    // Remove tab state
+    const newTabStates = { ...tabStates };
+    delete newTabStates[tabId];
+    setTabStates(newTabStates);
+
+    // Switch to nearest tab
+    if (activeAppTabId === tabId) {
+      if (tabIndex > 0) {
+        setActiveAppTabId(newTabs[tabIndex - 1].id);
+      } else if (newTabs.length > 0) {
+        setActiveAppTabId(newTabs[0].id);
+      } else {
+        setActiveAppTabId('overview');
+      }
+    }
+  };
+
+  const handleOverviewClick = () => {
+    // Show project list or do nothing
+  };
+
+  const handleAPMTabChange = (apmTab: APMTab) => {
+    setTabStates(prev => ({
+      ...prev,
+      [activeAppTabId]: {
+        ...prev[activeAppTabId],
+        apmTab
+      }
+    }));
+  };
+
+  const handleNavigate = (tab: string, action: string) => {
+    setTabStates(prev => ({
+      ...prev,
+      [activeAppTabId]: {
+        ...prev[activeAppTabId],
+        apmTab: tab as APMTab,
+        activeAction: action
+      }
+    }));
+  };
+
+  const handleChartFilter = (filterType: string, value: string) => {
+    setTabStates(prev => {
+      const current = prev[activeAppTabId];
+      const currentFilters = current.activeFilters[filterType] || [];
+
+      return {
+        ...prev,
+        [activeAppTabId]: {
+          ...current,
+          activeFilters: {
+            ...current.activeFilters,
+            [filterType]: currentFilters.includes(value)
+              ? currentFilters.filter((v: string) => v !== value)
+              : [...currentFilters, value]
+          }
+        }
+      };
+    });
+  };
+
+  const isOverviewActive = false;
+  const currentApp = appTabs.find(t => t.id === activeAppTabId);
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Sidebar - always show */}
+      <Sidebar
+        activeTab={currentTabState.apmTab}
+        onTabChange={handleAPMTabChange}
+      />
+
+      {/* Contextual Sidebar per UX */}
+      <ContextSidebar
+        activeTab={currentTabState.apmTab}
+        selectedProjectIds={projectSources}
+        onProjectSelect={setProjectSources}
+      />
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Compact Header with App Tabs */}
+        <Header
+          appTabs={appTabs}
+          activeAppTabId={activeAppTabId}
+          onTabChange={setActiveAppTabId}
+          onTabClose={handleCloseTab}
+          onOverviewClick={handleOverviewClick}
+        />
+
+        {/* Compact Tab Bar - APM Tabs + App/Agent Selector in one row */}
+        <CompactTabBar
+          activeTab={currentTabState.apmTab}
+        onTabChange={handleAPMTabChange}
+        isOverview={isOverviewActive}
+      />
+
+        {/* Tab Content */}
+        <main className="flex-1 overflow-auto p-6">
+          {currentTabState.apmTab === 'transaction' && (
+            <TransactionTab
+              onNavigate={handleNavigate}
+              activeFilters={currentTabState.activeFilters}
+              onChartFilter={handleChartFilter}
+              projectSources={projectSources}
+            />
+          )}
+          {currentTabState.apmTab === 'rum' && (
+            <RumTab />
+          )}
+          {currentTabState.apmTab === 'was' && (
+            <WasTab />
+          )}
+          {currentTabState.apmTab === 'analysis' && (
+            <AnalysisTabRefactored
+              activeAction={currentTabState.activeAction}
+              onNavigate={handleNavigate}
+            />
+          )}
+          {currentTabState.apmTab === 'topology' && (
+            <TopologyTab
+              selectedApp={currentApp?.appId}
+              onOpenApp={handleOpenApp}
+            />
+          )}
+          {currentTabState.apmTab === 'report' && (
+            <ReportTabRefactored />
+          )}
+          {currentTabState.apmTab === 'config' && (
+            <ConfigTab activeAction={currentTabState.activeAction} />
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}

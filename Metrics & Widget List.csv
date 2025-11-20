@@ -1,0 +1,75 @@
+Agent,Metrics,Description,Widget Type
+Webserver Agent,Request Rate,Monitors request rate,Line Chart
+Webserver Agent,Error Rate,Monitors error rate,Line Chart
+Webserver Agent,Response Time,Monitors response time,Line Chart
+Webserver Agent,Uptime Monitoring,Monitors uptime,Gauge
+Webserver Agent,Throughput,Monitors throughput,Line Chart
+Webserver Agent,Session Metrics,Monitors session metrics,Line Chart
+Webserver Agent,Connection Metrics,Monitors connection metrics,Line Chart
+Webserver Agent,Traffic Analysis,Analyzes traffic,Area Chart
+Webserver Agent,HTTP Response code Analysis,Status-code breakdown; 2xx/4xx/5xx rates,Stacked Bar Chart
+Webserver Agent,"P95, P99 Latency",95% or 99% of requests have latency <= this value within a time window,Line Chart
+Webserver Agent,CPU Utilization,Gauge or line showing the percentage of CPU being used,Gauge
+Webserver Agent,Memory,Clock or line showing percentage of used memory,Gauge
+Webserver Agent,Available Memory (MB),Displays remaining free memory capacity,Gauge
+Webserver Agent,Disk Read/Write,Line graph showing drive read/write speed (IOPS or MB/s),Line Chart
+Webserver Agent,Free Disk,Bar or clock graph displaying remaining free disk space,Bar Chart
+WAS Agent,Application Response Time,Monitors application response time,Line Chart
+WAS Agent,Error Logging,Logs errors,Table
+WAS Agent,JVM Performance,Monitors JVM performance,Line Chart
+WAS Agent,Thread Monitoring,Monitors threads,Line Chart
+WAS Agent,Session Management,Manages sessions,Line Chart
+WAS Agent,Transaction Rate,Monitors transaction rate,Line Chart
+WAS Agent,Heap & Thread Dump Analysis,Advanced diagnostic tools,Table
+WAS Agent,Garbage Collection (GC) Monitoring,Monitoring the JVM's garbage collection to avoid hangs due to GC,Line Chart
+WAS Agent,Middleware Specific Metrics,Number of thread pools or JDBC connection pools,Table
+WAS Agent,Application Health Monitoring,Monitors application health,Gauge
+WAS Agent,Throughput,Monitors throughput,Line Chart
+WAS Agent,"P95, P99 Latency",95% or 99% of requests have latency <= this value within a time window,Line Chart
+WAS Agent,TPS (Transactions Per Second),Monitors transactions per second,Line Chart
+WAS Agent,Apdex Score,Monitors Apdex score,Gauge
+WAS Agent,Average Response Time,Monitors average response time,Line Chart
+WAS Agent,Peak Load,Monitors peak load,Area Chart
+WAS Agent,Error Rate,Monitors error rate,Line Chart
+WAS Agent,Latency,Monitors latency,Line Chart
+WAS Agent,Distributed Tracing,Tracks transactions across multiple services,Waterfall Chart
+WAS Agent,Loging Intergation,,Table
+WAS Agent,Span tracing system,,Timeline Chart
+WAS Agent,Transaction Trace,Traces transactions,Waterfall Chart
+WAS Agent,Service Topology Map,"End-to-end map showing relationships between services, databases, and external calls",Topology Map
+WAS Agent,X-View,Scatter plot of transactions to detect latency outliers; supports box/brush selection,Scatter Plot
+WAS Agent,Distributed Trace (Bullet View),Waterfall view of spans showing execution order and error stacks,Waterfall Chart
+WAS Agent,Query Counts,Line graph showing total queries per second or per minute,Line Chart
+WAS Agent,"Top 10 Almost Query, Slow Query",,Table
+WAS Agent,Query execution time,"Average, p95, p99 query execution time",Line Chart
+WAS Agent,Query error,,Bar Chart
+WAS Agent,Number of queries per second(QPS) / Transactions per second (TPS),,Line Chart
+WAS Agent,Number of rollbacks / aborted transactions,,Bar Chart
+WAS Agent,Deadlocks count / blocking sessions count,,Bar Chart
+WAS Agent,Replication Lag,"Single indicator showing copy latency, usually in seconds",Line Chart
+WAS Agent,Active connections count,,Line Chart
+WAS Agent,Idle connections count,,Line Chart
+WAS Agent,Connection pool usage / pool saturation,,Gauge
+WAS Agent,Connection wait time,,Line Chart
+WAS Agent,Session waits / session queue length,,Line Chart
+WAS Agent,CPU Utilization,Gauge or line showing the percentage of CPU being used,Gauge
+WAS Agent,Memory,Clock or line showing percentage of used memory,Gauge
+WAS Agent,Available Memory (MB),Displays remaining free memory capacity,Gauge
+WAS Agent,Disk Read/Write,Line graph showing drive read/write speed (IOPS or MB/s),Line Chart
+WAS Agent,Free Disk,Bar or clock graph displaying remaining free disk space,Bar Chart
+WAS Agent,Exception Source code,,Code Block
+WAS Agent,Exception Source code diff,,Code Block
+Browser Agent,DOMContentLoaded,Measures page load speed,Line Chart
+Browser Agent,LoadEventEnd,,Line Chart
+Browser Agent,Page Load Time,Total time for a web page to be ready for interaction,Line Chart
+Browser Agent,Resource Load Times,"Time to load individual resources such as JavaScript files, CSS, images",Table
+Browser Agent,JavaScript Errors,Monitor the number and details of JavaScript errors occurring in the browser,Line Chart
+Browser Agent,HTTP Errors,Record failed network requests (API calls),Line Chart
+Browser Agent,Browser,"Examples: Chrome, Safari, Firefox, and their versions",Pie Chart
+Browser Agent,Device,"Examples: Desktop, Mobile, Tablet",Pie Chart
+Browser Agent,Geolocation,"User country, region, or city",Table
+Browser Agent,Operating System,"Examples: Windows, macOS, iOS, Android",Pie Chart
+Browser Agent,Session Count,Count the number of user sessions,Line Chart
+Browser Agent,First Input Delay (FID),Delay from first user interaction (e.g. click or touch),Histogram
+Browser Agent,Interaction to Next Paint (INP),,Histogram
+Browser Agent,Geographic Performance,Compare performance metrics across regions,Choropleth Map
