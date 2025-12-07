@@ -1,123 +1,182 @@
 import { Node, Edge } from 'reactflow';
 
-// Standard Vertical Stack Layout (The one we have)
-export const generateVerticalStackLayout = () => {
+// Helper to add nodes/edges deeply
+const createK8sData = () => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    const LAYER_HEIGHT = 280;
-    const NODE_WIDTH = 220;
+    const layerYPositions: Record<string, number> = {};
 
-    const layerYPositions: Record<string, number> = {
-        'application': 0,
-        'service': LAYER_HEIGHT * 1 + 100,
-        'process': LAYER_HEIGHT * 2 + 100,
-        'host': LAYER_HEIGHT * 3 + 100,
-        'datacenter': LAYER_HEIGHT * 4 + 100,
-    };
+    const addNode = (id: string, label: string, type: 'namespace' | 'service' | 'workload' | 'pod' | 'node', x: number, y: number, level: number, subLabel?: string, notifications?: number, technology?: string, vulnerability?: string) => {
+        // Levels: 
+        // 1: Node (Bottom)
+        // 2: Pod
+        // 3: Workload
+        // 4: Service
+        // 5: Namespace (Top)
 
-    const addNode = (id: string, label: string, type: string, layerIndex: number, colIndex: number, totalCols: number, subLabel?: string, notifCount?: number, tech?: string, vulnerability?: 'critical' | 'high' | 'medium' | 'low') => {
-        const x = (colIndex - (totalCols - 1) / 2) * (NODE_WIDTH + 80);
-        const y = layerIndex * LAYER_HEIGHT + 100;
+        const yPos = level * -250;
+        layerYPositions[type] = yPos;
+
         nodes.push({
-            id, type: 'smartscape', position: { x, y },
-            data: { label, type, subLabel, notificationCount: notifCount, technology: tech, vulnerability }
+            id,
+            type: 'smartscape',
+            position: { x: x * 200, y: yPos },
+            data: {
+                label,
+                subLabel,
+                type,
+                status: notifications ? 'critical' : 'healthy',
+                notificationCount: notifications,
+                technology,
+                vulnerability: vulnerability as any,
+                showVulnerability: false
+            }
         });
     };
 
     const addEdge = (source: string, target: string, color: string = '#555', dashed: boolean = false) => {
         edges.push({
-            id: `e-${source}-${target}`, source, target, animated: !dashed,
-            type: 'default',
-            style: {
-                stroke: color,
-                strokeWidth: 2,
-                strokeOpacity: dashed ? 0.3 : 0.6,
-                strokeDasharray: dashed ? '5 5' : '0'
-            }
+            id: `e-${source}-${target}`,
+            source,
+            target,
+            animated: !dashed,
+            style: { stroke: color, strokeWidth: dashed ? 1 : 2, strokeDasharray: dashed ? '5 5' : undefined }
         });
     };
 
-    // --- RECREATE DATA (Simplified for brevity, similar to previous) ---
-    // 1. DC Layer - Multiple Datacenters
-    addNode('dc-1', 'AWS us-east-1', 'datacenter', 4, -1.5, 3, 'Region', 0, 'aws');
-    addNode('dc-2', 'Azure East US', 'datacenter', 4, 0, 3, 'Region', 0, 'azure');
-    addNode('dc-3', 'On-Premise DC', 'datacenter', 4, 1.5, 3, 'Hanoi', 0, 'linux');
+    // --- GENERATE K8S DATA ---
 
-    // Hosts - Distributed across DCs
-    const hosts = ['host-1', 'host-2', 'host-3', 'host-4', 'host-5'];
-    hosts.forEach((h, i) => {
-        const isLinux = i % 2 === 0;
-        addNode(h, `Worker ${i + 1}`, 'host', 3, i - 2, 5, isLinux ? 'Linux' : 'Windows', i === 2 ? 2 : 0, isLinux ? 'linux' : 'windows');
+    // 1. Layer: NODES (Infrastructure)
+    const nodeCount = 5;
+    const k8sNodes = Array.from({ length: nodeCount }).map((_, i) => ({
+        id: `node-${i}`,
+        label: `worker-node-${i + 1}`,
+        type: 'node'
+    }));
 
-        // Connect to different DCs based on index
-        if (i < 2) addEdge(h, 'dc-1', '#ffa400'); // AWS
-        else if (i < 4) addEdge(h, 'dc-2', '#0078d4'); // Azure
-        else addEdge(h, 'dc-3', '#555'); // On-prem
+    k8sNodes.forEach((n, i) => {
+        addNode(n.id, n.label, 'node', i * 2.5, 0, 1, 'Ready', i === 2 ? 1 : 0, 'linux');
     });
 
-    // Processes (Crowded)
-    const procs = Array.from({ length: 8 }, (_, i) => `proc-${i}`);
-    procs.forEach((p, i) => {
-        // Randomly assign to host
-        const dims = Math.floor(i / 2) - 1.5;
-        const isCritical = i === 2; // Simulate a critical process
-        // Simulate Vulnerabilities: 0=Critical, 1=High, 3=Medium
-        let vul: 'critical' | 'high' | 'medium' | 'low' | undefined = undefined;
-        if (i === 0) vul = 'critical';
-        if (i === 1) vul = 'high';
-        if (i === 3) vul = 'medium';
-        if (i === 5) vul = 'low';
+    // 2. Layer: PODS & 3. WORKLOADS & 4. SERVICES (Application Logic)
+    // Generate more dense graph
+    const services = [
+        { id: 'svc-pay', label: 'payment-svc', tech: 'java' },
+        { id: 'svc-auth', label: 'auth-service', tech: 'go' },
+        { id: 'svc-inv', label: 'inventory', tech: 'nodejs' },
+        { id: 'svc-usr', label: 'user-profile', tech: 'python' },
+        { id: 'svc-cart', label: 'cart-service', tech: 'nodejs' },
+        { id: 'svc-rec', label: 'recommendation', tech: 'python' },
+        { id: 'svc-web', label: 'frontend-web', tech: 'react' },
+        { id: 'svc-gate', label: 'api-gateway', tech: 'nginx' }
+    ];
 
-        addNode(p, `Process ${i}`, 'process', 2, dims, 4, isCritical ? 'CrashLoopBackOff' : 'Running', isCritical ? 99 : 0, 'java', vul);
+    let podIndex = 0;
+    services.forEach((svc, i) => {
+        // Add Service
+        // Spread them out more given we have 8 now
+        addNode(svc.id, svc.label, 'service', i * 2, 0, 4, 'ClusterIP', i === 0 ? 2 : 0, svc.tech);
 
-        // Critical path is RED
-        addEdge(p, hosts[i % hosts.length], isCritical ? '#ef4444' : '#9355b7');
+        // Add Workload (Deploy)
+        const workloadId = `deploy-${svc.id.split('-')[1]}`;
+        addNode(workloadId, `${svc.label}-deploy`, 'workload', i * 2, 0, 3, 'Deployment', 0, 'k8s');
+        addEdge(workloadId, svc.id, '#777', true);
+
+        // Add Pods (Multiple per service for density)
+        // Variable pod count (3 to 5)
+        const podCount = Math.floor(Math.random() * 3) + 3;
+        for (let j = 0; j < podCount; j++) {
+            const podId = `pod-${svc.id.split('-')[1]}-${j}`;
+            // Offset pods slightly around the workload X
+            const podX = (i * 2) + ((j - (podCount - 1) / 2) * 0.5);
+
+            // Randomly assign error status and vulnerability
+            const hasIssue = Math.random() > 0.9;
+            const vulnChance = Math.random();
+            let vuln = 'none';
+            if (vulnChance > 0.9) vuln = 'critical';
+            else if (vulnChance > 0.8) vuln = 'high';
+            else if (vulnChance > 0.7) vuln = 'medium';
+
+            addNode(podId, `${svc.label}-${Math.floor(Math.random() * 1000)}`, 'pod', podX, 0, 2, 'Running', hasIssue ? 1 : 0, 'docker', vuln);
+
+            addEdge(podId, workloadId, '#555', false);
+
+            // Link Pod to Node (Infrastructure Distribution)
+            const targetNode = k8sNodes[Math.floor(Math.random() * k8sNodes.length)];
+            addEdge(targetNode.id, podId, '#333', true);
+        }
     });
 
-    // Services
-    addNode('svc-1', 'Frontend Svc', 'service', 1, -1, 2, 'LoadBalancer', 0, 'nginx', 'high');
-    addNode('svc-2', 'Backend Svc', 'service', 1, 1, 2, 'ClusterIP');
+    // Inter-service Dependencies (Mesh)
+    addEdge('svc-web', 'svc-gate', '#aaa');
+    addEdge('svc-gate', 'svc-auth', '#aaa');
+    addEdge('svc-gate', 'svc-rec', '#aaa');
+    addEdge('svc-gate', 'svc-pay', '#aaa');
+    addEdge('svc-gate', 'svc-cart', '#aaa');
+    addEdge('svc-pay', 'svc-inv', '#aaa');
+    addEdge('svc-pay', 'svc-usr', '#aaa');
+    addEdge('svc-cart', 'svc-inv', '#aaa');
+    addEdge('svc-rec', 'svc-inv', '#aaa');
 
-    edges.push({ id: 'e-s1-p1', source: 'svc-1', target: 'proc-0', animated: true, style: { stroke: '#73be28' } });
-    edges.push({ id: 'e-s2-p2', source: 'svc-2', target: 'proc-4', animated: true, style: { stroke: '#73be28' } });
+    // 5. Layer: NAMESPACES (Logical grouping)
+    addNode('ns-default', 'default', 'namespace', 4, 0, 5, 'Active', 0, 'azure');
+    addNode('ns-system', 'kube-system', 'namespace', 10, 0, 5, 'System', 0, 'linux');
 
-    addNode('app-1', 'EasyShop', 'application', 0, -0.5, 2, 'Production', 0, 'confluence'); // Simulated Web
-    addNode('app-mobile', 'Shop App IOS', 'application', 0, 0.5, 2, 'v2.0', 0, 'apple');
+    // 6. Layer: EXTERNAL (DB, Cloud, 3rd Party) - Slide 3.5/4
+    const externals = [
+        { id: 'ext-rds', label: 'AWS RDS Postgre', icon: 'aws' },
+        { id: 'ext-kafka', label: 'Kafka Cluster', icon: 'linux' },
+        { id: 'ext-stripe', label: 'Stripe API', icon: 'confluence' },
+        { id: 'ext-redis', label: 'Redis Cache', icon: 'redis' },
+        { id: 'ext-s3', label: 'AWS S3 Assets', icon: 'aws' }
 
-    addEdge('app-1', 'svc-1', '#00a6fb');
-    addEdge('app-mobile', 'svc-1', '#00a6fb');
+    ];
 
-    // --- ISOLATED NODES (No Connections) ---
-    // Simulating "Orphaned" or independent components found in screenshots
-    addNode('iso-app-1', 'Internal Tool', 'application', 0, -2, 4, 'Legacy', 0, 'windows');
-    addNode('iso-proc-1', 'Backup Job', 'process', 2, 2.5, 4, 'Scheduled', 0, 'linux');
-    addNode('iso-host-x', 'Dev Box', 'host', 3, 2.5, 5, '192.168.x.x', 0, 'linux', 'low');
+    externals.forEach((e, i) => {
+        // Place externals at the very top (Level 6), spread out
+        addNode(e.id, e.label, 'external', (i * 3) + 1, -2, 6, 'External', 0, e.icon);
+    });
+
+    // Connect Pods/Services to External
+    addEdge('pod-pay-0', 'ext-stripe', '#00a6fb', true);
+    addEdge('pod-inv-1', 'ext-rds', '#00a6fb', true);
+    addEdge('pod-rec-0', 'ext-kafka', '#00a6fb', true);
+    addEdge('pod-cart-0', 'ext-redis', '#00a6fb', true);
+    addEdge('svc-web', 'ext-s3', '#00a6fb', true);
+
+    // Connect everything from 'default' namespace
+    services.forEach(s => {
+        addEdge('ns-default', s.id, '#666', true);
+    });
 
     return { nodes, edges, layerYPositions };
 };
 
+export const generateVerticalStackLayout = () => {
+    // Use the K8s Data generator
+    return createK8sData();
+};
 
-// "Cluster / Mesh" Layout (For Host/Process Views - imitating the complex screenshots)
-export const generateStarLayout = (centerType: 'host' | 'process') => {
+// "Cluster / Mesh" Layout (For Pod/Node Views)
+export const generateStarLayout = (centerType: string) => {
+    // If it's not pod or node, return vertical for safety
+    if (centerType !== 'pod' && centerType !== 'node') return generateVerticalStackLayout();
+
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
-    // Config based on type
-    // Processes view has multiple large clusters (e.g. 2 big ones in screenshot)
-    // Hosts view has one main cluster and scattered nodes
-    const clusterCount = centerType === 'process' ? 3 : 1;
+    const clusterCount = centerType === 'pod' ? 3 : 1;
 
-    // Helper to create a cluster
     const createCluster = (centerX: number, centerY: number, clusterIdx: number) => {
-        // Central Node
         const centerId = `cluster-${clusterIdx}-center`;
-        const centerTech = centerType === 'host' ? 'windows' : 'java';
+        const centerTech = centerType === 'node' ? 'linux' : 'java';
         nodes.push({
             id: centerId,
             type: 'smartscape',
             position: { x: centerX, y: centerY },
             data: {
-                label: centerType === 'host' ? `Master Host ${clusterIdx}` : `Main Proc ${clusterIdx}`,
+                label: centerType === 'node' ? `Master Node ${clusterIdx}` : `Core Pod ${clusterIdx}`,
                 type: centerType,
                 subLabel: 'Cluster Core',
                 status: 'healthy',
@@ -126,105 +185,32 @@ export const generateStarLayout = (centerType: 'host' | 'process') => {
             }
         });
 
-        // Ring 1 (Dense Core)
-        const r1Count = centerType === 'process' ? 12 : 16;
+        const r1Count = centerType === 'pod' ? 12 : 8;
         const r1Radius = 300;
         for (let i = 0; i < r1Count; i++) {
             const angle = (i / r1Count) * 2 * Math.PI;
             const x = centerX + Math.cos(angle) * r1Radius;
             const y = centerY + Math.sin(angle) * r1Radius;
             const id = `c${clusterIdx}-r1-${i}`;
-            const type = centerType === 'host' ? 'process' : 'service';
+            const type = centerType === 'node' ? 'pod' : 'service';
 
             nodes.push({
                 id, type: 'smartscape', position: { x, y },
-                data: { label: `${type} ${i}`, type, technology: i % 3 === 0 ? 'nginx' : 'linux', showVulnerability: false }
+                data: { label: `${type} ${i}`, type, technology: 'java', showVulnerability: false }
             });
 
-            // Connect to center
             edges.push({
                 id: `e-${centerId}-${id}`, source: centerId, target: id, animated: true,
                 style: { stroke: '#555', strokeWidth: 1.5 }
             });
-
-            // Cross connect neighbours (Web effect)
-            if (Math.random() > 0.4) {
-                const targetIdx = (i + 1) % r1Count;
-                edges.push({
-                    id: `e-${id}-n${targetIdx}`, source: id, target: `c${clusterIdx}-r1-${targetIdx}`,
-                    animated: false, style: { stroke: '#333', strokeWidth: 0.5, strokeDasharray: '4 4' }
-                });
-            }
-        }
-
-        // Ring 2 (Messy Outer Web)
-        const r2Count = centerType === 'process' ? 25 : 10;
-        const r2Radius = 600;
-        for (let i = 0; i < r2Count; i++) {
-            const angle = (i / r2Count) * 2 * Math.PI + Math.random(); // Random offset
-            const varRadius = r2Radius + (Math.random() * 200 - 100);
-            const x = centerX + Math.cos(angle) * varRadius;
-            const y = centerY + Math.sin(angle) * varRadius;
-            const id = `c${clusterIdx}-r2-${i}`;
-            const type = centerType === 'host' ? 'service' : 'process';
-
-            // Random Vulnerabilities
-            const vul = Math.random() > 0.85 ? (Math.random() > 0.5 ? 'high' : 'medium') : undefined;
-
-            nodes.push({
-                id, type: 'smartscape', position: { x, y },
-                data: { label: `${type} ${i}`, type, vulnerability: vul as any, showVulnerability: false }
-            });
-
-            // Connect to random ring 1 nodes (Multiple parents sometimes)
-            const parentIdx = Math.floor(Math.random() * r1Count);
-            edges.push({
-                id: `e-p${parentIdx}-${id}`, source: `c${clusterIdx}-r1-${parentIdx}`, target: id,
-                animated: true, style: { stroke: '#444', strokeWidth: 1 }
-            });
-
-            // Chaos connections
-            if (Math.random() > 0.7) {
-                const rnd = Math.floor(Math.random() * r2Count);
-                edges.push({
-                    id: `e-chaos-${id}-${rnd}`, source: id, target: `c${clusterIdx}-r2-${rnd}`,
-                    animated: false, style: { stroke: '#333', strokeOpacity: 0.3 }
-                });
-            }
         }
     };
 
-    // GENERATE CLUSTERS
-    if (centerType === 'process') {
+    if (centerType === 'pod') {
         createCluster(0, 0, 1);
-        createCluster(1800, 400, 2); // Second large cluster nearby
+        createCluster(1800, 400, 2);
     } else {
-        createCluster(0, 0, 1); // Single massive host cluster
-    }
-
-    // SCATTERED ISOLATED NODES (Debris)
-    // Random positions far from center
-    const isoCount = 15;
-    for (let i = 0; i < isoCount; i++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.random() * 1500 + 800; // Far out
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-
-        nodes.push({
-            id: `iso-${i}`,
-            type: 'smartscape',
-            position: { x, y },
-            data: {
-                label: `Isolated ${i}`,
-                type: centerType === 'host' ? 'host' : 'process',
-                status: 'healthy',
-                technology: centerType === 'host' ? 'linux' : 'postgres',
-                subLabel: 'No Traffic',
-                showVulnerability: false
-            }
-        });
-        // Intentionally NO EDGES for these
+        createCluster(0, 0, 1);
     }
 
     return { nodes, edges };

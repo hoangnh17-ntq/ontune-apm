@@ -15,10 +15,16 @@ import 'reactflow/dist/style.css';
 
 import SmartscapeNode from '@/components/smartscape/SmartscapeNode';
 import { SmartscapeSidebar } from '@/components/smartscape/SmartscapeSidebar';
-import { generateVerticalStackLayout, generateStarLayout } from '@/components/smartscape/layouts';
+import { NodeDetailSidebar } from '@/components/smartscape/NodeDetailSidebar';
+import { SmartscapeTimeline, SmartscapeFilterBar } from '@/components/smartscape/SmartscapeControls';
+import {
+    generateVerticalStackLayout,
+    generateStarLayout
+} from '@/components/smartscape/layouts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Cuboid, RefreshCw, X, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const SmartscapeDemoPage = () => {
     // Initial State: Vertical Stack
@@ -31,8 +37,10 @@ const SmartscapeDemoPage = () => {
     const [layoutMode, setLayoutMode] = React.useState<'vertical' | 'star'>('vertical');
     const [viewMode, setViewMode] = React.useState<'topology' | 'vulnerability'>('topology');
 
-    // Cross-Tier Interaction State
+    const [selectedLayer, setSelectedLayer] = React.useState<string | null>(null);
     const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
+    const [selectedNodeData, setSelectedNodeData] = React.useState<any>(null); // For Sidebar
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
     const [relatedCounts, setRelatedCounts] = React.useState<Record<string, number> | undefined>(undefined);
 
     const nodeTypes = useMemo(() => ({ smartscape: SmartscapeNode }), []);
@@ -122,56 +130,169 @@ const SmartscapeDemoPage = () => {
         });
         setRelatedCounts(counts);
 
-    }, [nodes, edges]);
+    }, [nodes, edges, setEdges, setNodes, setRelatedCounts]);
 
-    const handleNodeClick = (_e: React.MouseEvent, node: Node) => {
-        // Toggle selection
-        if (selectedNodeId === node.id) {
-            setSelectedNodeId(null);
-            calculateDependencyPath(null);
-        } else {
-            setSelectedNodeId(node.id);
-            calculateDependencyPath(node.id);
-        }
-    };
+    const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+        event.stopPropagation(); // Prevents pane click from clearing
+        setSelectedNodeId(node.id);
+        setSelectedNodeData(node.data); // Set data for sidebar
+        setIsSidebarOpen(true);         // Open sidebar
+        calculateDependencyPath(node.id);
+    }, [calculateDependencyPath]);
 
-    const handleBgClick = () => {
-        if (selectedNodeId) {
-            setSelectedNodeId(null);
-            calculateDependencyPath(null);
+    const onPaneClick = useCallback(() => {
+        setSelectedNodeId(null);
+        setSelectedNodeData(null);
+        setIsSidebarOpen(false); // Close sidebar on bg click
+        calculateDependencyPath(null);
+    }, [calculateDependencyPath]);
+
+    const [scope, setScope] = React.useState<'global' | 'namespace' | 'cluster' | 'pod'>('global');
+
+    const handleScopeChange = (newScope: 'global' | 'namespace' | 'cluster' | 'pod') => {
+        setScope(newScope);
+        setActiveFilters([]); // Reset filters on scope change for clarity? Or keep them? Resetting is safer.
+
+        if (newScope === 'global') {
+            setLayoutMode('vertical');
+            setNodes(verticalData.nodes);
+            setEdges(verticalData.edges);
+            setTimeout(() => reactFlowInstance?.fitView({ duration: 800 }), 100);
+        } else if (newScope === 'namespace') {
+            setLayoutMode('vertical');
+            setNodes(verticalData.nodes);
+            setEdges(verticalData.edges);
+            // Auto-apply namespace filter
+            setActiveFilters(['ns:default']);
+            setTimeout(() => reactFlowInstance?.fitView({ duration: 800 }), 100);
+        } else if (newScope === 'cluster') {
+            setLayoutMode('star');
+            // Generate star layout for a "Cluster" (Node-centric)
+            const starData = generateStarLayout('node');
+            setNodes(starData.nodes);
+            setEdges(starData.edges);
+            setTimeout(() => reactFlowInstance?.fitView({ duration: 800 }), 100);
+        } else if (newScope === 'pod') {
+            setLayoutMode('star');
+            // Generate star layout for a "Pod" (Pod-centric)
+            const starData = generateStarLayout('pod');
+            setNodes(starData.nodes);
+            setEdges(starData.edges);
+            setTimeout(() => reactFlowInstance?.fitView({ duration: 800 }), 100);
         }
     };
 
     const handleLayerSelect = (layerId: string) => {
         setActiveLayer(layerId);
+        // ... (keep existing layer select logic if needed, but Scope selector might supersede it eventually)
+        // For now, let's keep the layer selection just for panning/highlighting primarily
+        // But if user clicks 'node' layer, maybe we switch to Global view focused on Node layer?
 
-        // Dynamic Layout Switching based on Layer
-        // If selecting Process or Host, user might want "Cluster View" (Star)
-        if (layerId === 'process' || layerId === 'host') {
-            setLayoutMode('star');
-            const starData = generateStarLayout(layerId as 'process' | 'host');
-            setNodes(starData.nodes);
-            setEdges(starData.edges);
-            // Reset selection when changing layout to avoid confusion
-            setSelectedNodeId(null);
-            setRelatedCounts(undefined);
-
-            setTimeout(() => reactFlowInstance?.fitView({ duration: 800 }), 100);
+        // Auto-switch layout for complex layers (K8s: Node & Pod)
+        if (layerId === 'node' || layerId === 'pod') {
+            // ... Logic kept existing but might need syncing with Scope ...
+            // Let's just delegate to handleScopeChange for consistency if they click the layer sidebar?
+            if (layerId === 'node') handleScopeChange('cluster');
+            if (layerId === 'pod') handleScopeChange('pod');
         } else {
             // Default back to Vertical Stack for others
-            setLayoutMode('vertical');
-            setNodes(verticalData.nodes);
-            setEdges(verticalData.edges);
-            setSelectedNodeId(null);
-            setRelatedCounts(undefined);
-
-            // Pan to layer
-            if (activeLayer !== layerId && reactFlowInstance && verticalData.layerYPositions) {
-                const y = verticalData.layerYPositions[layerId] || 0;
-                reactFlowInstance.setCenter(0, y, { zoom: 1.0, duration: 1000 });
+            if (layoutMode !== 'vertical') {
+                handleScopeChange('global');
+                // Wait for state update to process
+                setTimeout(() => {
+                    panToLayer(layerId);
+                }, 100);
+            } else {
+                panToLayer(layerId);
             }
         }
     };
+
+    const panToLayer = (layerId: string) => {
+        if (!reactFlowInstance) return;
+
+        // Find all nodes in this layer
+        const layerNodes = nodes.filter(n => n.data.type === layerId);
+
+        if (layerNodes.length > 0) {
+            // Calculate center of bounding box
+            const xs = layerNodes.map(n => n.position.x);
+            const ys = layerNodes.map(n => n.position.y);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            // Adjust zoom based on breadth? For now fixed 1.0 is fine, or fitBounds
+            reactFlowInstance.setCenter(centerX, centerY, { zoom: 1.0, duration: 1000 });
+        }
+    };
+
+    // --- Filter Logic ---
+    const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
+    const [filteredNodes, setFilteredNodes] = React.useState<Node[]>(nodes);
+    const [filteredEdges, setFilteredEdges] = React.useState<Edge[]>(edges);
+
+    const handleToggleFilter = (filterKey: string) => {
+        setActiveFilters(prev =>
+            prev.includes(filterKey)
+                ? prev.filter(f => f !== filterKey)
+                : [...prev, filterKey]
+        );
+    };
+
+    // Apply Filters Effect
+    React.useEffect(() => {
+        if (activeFilters.length === 0) {
+            setFilteredNodes(nodes);
+            setFilteredEdges(edges);
+            return;
+        }
+
+        const visibleNodeIds = new Set<string>();
+
+        const fNodes = nodes.filter(node => {
+            let visible = true;
+            // AND logic: Node must match ALL active filters (simplified for demo)
+            // Or OR logic? Usually filters are "Show only X".
+
+            // Check Namespace Filter
+            if (activeFilters.includes('ns:default')) {
+                // Crude check: Label or ID contains 'default' or it's connected to it?
+                // For demo, let's say "If ns:default is on, hide kube-system stuff"
+                if (node.id.includes('system') || node.data.label.includes('system')) visible = false;
+            }
+
+            // Check App Filters
+            if (activeFilters.some(f => f.startsWith('app:'))) {
+                const appFilters = activeFilters.filter(f => f.startsWith('app:'));
+                // Show if node matches ANY of the selected apps
+                const matchesApp = appFilters.some(f => {
+                    const appName = f.split(':')[1];
+                    return node.data.label.toLowerCase().includes(appName) ||
+                        (node.data.subLabel && node.data.subLabel.toLowerCase().includes(appName));
+                });
+
+                // Keep structural nodes (Namespaces, Nodes, Externals) always visible for context?
+                // Or hide them if unrelated? Let's keep Infra nodes visible.
+                const isInfra = node.type === 'smartscape' && (node.data.type === 'node' || node.data.type === 'namespace' || node.data.type === 'external');
+
+                if (!matchesApp && !isInfra) visible = false;
+            }
+
+            if (visible) visibleNodeIds.add(node.id);
+            return visible;
+        });
+
+        const fEdges = edges.filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
+
+        setFilteredNodes(fNodes);
+        setFilteredEdges(fEdges);
+
+    }, [nodes, edges, activeFilters]);
 
     return (
         <div className="w-full h-screen bg-[#111115] text-foreground flex overflow-hidden font-sans">
@@ -186,12 +307,42 @@ const SmartscapeDemoPage = () => {
             <div className="flex-1 flex flex-col relative h-full">
                 {/* Header */}
                 <div className="absolute top-0 left-0 w-full z-10 p-4 flex justify-between items-center pointer-events-none">
-                    <div className="bg-[#111115]/50 backdrop-blur-md p-2 rounded-lg border border-white/10">
+                    <div className="bg-[#111115]/50 backdrop-blur-md p-2 rounded-lg border border-white/10 flex items-center pointer-events-auto">
                         <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
                             <Cuboid className="text-blue-500" />
                             Smartscape
                         </h1>
-                        <p className="text-gray-400 text-xs ml-9">environment: <span className="text-green-400">production-01</span></p>
+
+                        {/* Context / Scope Switcher */}
+                        <div className="flex items-center gap-2 ml-8 border-l border-gray-700 pl-4 h-6">
+                            <span className="text-xs text-gray-500 uppercase font-mono">Scope:</span>
+                            <div className="flex bg-[#1a1a20] rounded border border-gray-800 p-0.5">
+                                <button
+                                    onClick={() => handleScopeChange('global')}
+                                    className={cn("text-[10px] px-2 py-0.5 rounded transition-colors", scope === 'global' ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+                                >
+                                    Global
+                                </button>
+                                <button
+                                    onClick={() => handleScopeChange('namespace')}
+                                    className={cn("text-[10px] px-2 py-0.5 rounded transition-colors", scope === 'namespace' ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+                                >
+                                    Namespace
+                                </button>
+                                <button
+                                    onClick={() => handleScopeChange('cluster')}
+                                    className={cn("text-[10px] px-2 py-0.5 rounded transition-colors", scope === 'cluster' ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+                                >
+                                    Cluster
+                                </button>
+                                <button
+                                    onClick={() => handleScopeChange('pod')}
+                                    className={cn("text-[10px] px-2 py-0.5 rounded transition-colors", scope === 'pod' ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+                                >
+                                    Pod
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* View Switcher (New Feature) */}
@@ -223,22 +374,38 @@ const SmartscapeDemoPage = () => {
                 </div>
 
                 <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
+                    nodes={filteredNodes}
+                    edges={filteredEdges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     nodeTypes={nodeTypes}
                     fitView
                     onInit={setReactFlowInstance}
-                    onNodeClick={handleNodeClick}
-                    onPaneClick={handleBgClick}
+                    onNodeClick={onNodeClick}
+                    onPaneClick={onPaneClick}
                     className="flex-1 bg-[#111115]"
-                    minZoom={0.5}
-                    maxZoom={2}
+                    minZoom={0.1}
+                    maxZoom={1.5}
+                    nodesDraggable={true}
+                    nodesConnectable={false}
                 >
-                    <Background color="#333" gap={30} size={1} variant={BackgroundVariant.Dots} />
-                    <Controls className="bg-black border-gray-800 fill-white" />
+                    <Background color="#333" gap={20} size={1} variant={BackgroundVariant.Dots} />
+                    <Controls className="bg-[#1e1e24] border-gray-800 text-white fill-white" />
                 </ReactFlow>
+
+                {/* Right Slider / Details Panel */}
+                <NodeDetailSidebar
+                    nodeData={selectedNodeData}
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                />
+
+                {/* Timeline & Filters (Slides 3.5, 3.6) */}
+                {/* <SmartscapeTimeline /> Temporarily removed */}
+                <SmartscapeFilterBar
+                    activeFilters={activeFilters}
+                    onToggleFilter={handleToggleFilter}
+                />
             </div>
         </div>
     );

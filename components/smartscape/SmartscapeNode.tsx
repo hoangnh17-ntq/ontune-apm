@@ -83,8 +83,8 @@ const SmartscapeNode = ({ data, selected }: SmartscapeNodeProps) => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {/* Extended Label Box (Shows on Select or Hover) */}
-            {(selected || isHovered) && (
+            {/* Extended Label Box (Shows on Hover ONLY now, click opens Sidebar) */}
+            {(isHovered) && (
                 <ExtendedNodeLabel
                     label={label}
                     subLabel={subLabel}

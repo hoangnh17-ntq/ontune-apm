@@ -32,9 +32,51 @@ We moved beyond simple trees to implement context-aware layouts:
 ## Usage Guide
 1.  **Navigate**: Click sidebar items to pan to layers. Click 'Processes' or 'Hosts' to trigger the **Cluster Layout**.
 2.  **Analyze**: Click the **Vulnerabilities** button in the header to switch to Security View.
-3.  **Inspect**: Click any node to see the **Extended Info Box** and trace its dependencies.
+### 3. Node Interaction (Extended Info Box & Path Highlighting)
+## 4. UX/UI Integration Strategy (Kubernetes & APM)
 
-## Implementation Journey (Detailed Steps)
+To integrate this topology visualization into the core APM product, we define the following workflows and scopes.
+
+### A. Topology Scopes & Entry Points
+Instead of a single "One-View-Fits-All", the topology will be context-aware, accessible from specific resource detail pages.
+
+| Scope | Entry Point | Visualized Layers | Use Case |
+| :--- | :--- | :--- | :--- |
+| **Global Topology** | Main Menu > Infrastructure | Datacenters ↔ Clusters | High-level overview of multi-cloud/hybrid infrastructure. |
+| **Cluster Topology** | Cluster Detail View | Nodes ↔ Namespaces ↔ Services | Capacity planning and cluster health monitoring. |
+| **Namespace Topology** | Namespace Detail View | Pods ↔ Services ↔ Ingress | Microservices architecture visibility within a boundary. |
+| **Pod Topology** | Pod Detail View | Container ↔ Processes ↔ Network | Troubleshooting specific application instances. |
+
+### B. Navigation Flow
+1.  **User Journey Start**: User views a specific resource (e.g., "Payment-Service" Pod) in the **Resource List**.
+2.  **Detail View**: User clicks to enter **Pod Detail Screen** (Logs, Metrics, Events).
+3.  **Topology Trigger**: A "View Topology" tab or floating action button opens the Smartscape view scoped to that Pod.
+4.  **Context Retention**: The view automatically focuses on the targeted Pod and highlights its immediate dependencies ("The Spine").
+
+### C. Interaction: The "Right Slider" (Details Panel)
+Replacing the simple hover tooltip, clicking a Node will open a comprehensive **Right Slider (Drawer)**.
+
+*   **Trigger**: Click on any topology node.
+*   **Behavior**: Canvas resizes or pushes left; Slider slides in from right covering 30-40% width.
+*   **Content Sections**:
+    1.  **Header**: Icon, Name, Status Badge, K8s Labels (e.g., `app=payment`, `env=prod`).
+    2.  **APM Metrics (Mini-Charts)**:
+        *   **Throughput**: Request/min (Sparkline).
+        *   **Error Rate**: % of failed requests.
+        *   **Response Time**: P95/P99 latency.
+    3.  **Infrastructure Stats**: CPU Usage, Memory Limit vs Usage (from K8s metrics).
+    4.  **Actions**: "View Logs", "View Traces", "SSH to Terminal".
+
+### D. Data Mapping (Labels & APM)
+To link the Infrastructure Layer (K8s) with the Application Layer (APM), we utilize **Label Selectors**:
+
+*   **Mechanism**: The Topology Engine reads standard K8s labels (`app.kubernetes.io/name`, `environment`, `tier`).
+*   **Correlation**:
+    *   Node Label `app=checkout` -> Queries APM Backend for Service "checkout".
+    *   Fetches RED Metrics (Rate, Error, Duration) for that service.
+*   **Visualization**: The Node color and "Risk Level" are derived from this APM data (e.g., High Error Rate in APM -> Node turns Red in Topology).
+
+## Implementation Steps & Journey
 
 The development followed a phased approach to ensure high fidelity reproduction:
 

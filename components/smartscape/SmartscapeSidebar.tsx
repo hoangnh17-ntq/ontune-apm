@@ -5,17 +5,19 @@ import {
     Box,
     Server,
     Building2,
-    ChevronRight
+    ChevronRight,
+    Layers,
+    Container
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Define the layers structure matching the screenshot
 const layers = [
-    { id: 'application', label: 'Applications', icon: Monitor, count: 12 },
-    { id: 'service', label: 'Services', icon: Share2, count: 113 },
-    { id: 'process', label: 'Processes', icon: Box, count: 195 },
-    { id: 'host', label: 'Hosts', icon: Server, count: 33 },
-    { id: 'datacenter', label: 'Datacenters', icon: Building2, count: 6 },
+    { id: 'namespace', icon: Box, label: 'Namespaces', count: 4, related: 0 },
+    { id: 'service', icon: Share2, label: 'Services', count: 18, related: 0 },
+    { id: 'workload', icon: Layers, label: 'Workloads', count: 12, related: 0 },
+    { id: 'pod', icon: Container, label: 'Pods', count: 45, related: 0 },
+    { id: 'node', icon: Server, label: 'Nodes', count: 6, related: 0 },
 ];
 
 interface SmartscapeSidebarProps {
