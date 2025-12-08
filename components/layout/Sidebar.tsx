@@ -17,12 +17,14 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { APMTab } from '@/types/apm';
+import { KubernetesTab } from '@/types/kubernetes';
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
   submenu?: string[];
   active?: boolean;
+  section?: 'apm' | 'kubernetes';
 }
 
 const navItems: NavItem[] = [
@@ -30,13 +32,19 @@ const navItems: NavItem[] = [
   { icon: Server, label: 'Server' },
   { icon: Box, label: 'VMware' },
   { icon: Terminal, label: 'XenServer' },
-  { icon: Boxes, label: 'Kubernetes' },
+  { 
+    icon: Boxes, 
+    label: 'Kubernetes',
+    submenu: ['Monitor', 'Analysis', 'Report', 'Config'],
+    section: 'kubernetes'
+  },
   { icon: Cloud, label: 'Cloud', submenu: ['Monitor', 'Analysis', 'Report', 'Config'] },
   {
     icon: Activity,
     label: 'APM',
     submenu: ['Monitor', 'Analysis', 'Report', 'Config'],
-    active: true
+    active: true,
+    section: 'apm'
   },
   { icon: Database, label: 'Database' },
   { icon: Link, label: 'URL' },
@@ -44,12 +52,14 @@ const navItems: NavItem[] = [
 ];
 
 interface SidebarProps {
-  activeTab: APMTab;
+  activeTab: APMTab | KubernetesTab;
   onTabChange: (tab: APMTab) => void;
+  onKubernetesChange?: (tab: KubernetesTab) => void;
+  activeSection: 'apm' | 'kubernetes';
 }
 
-export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
-  const [expandedMenu, setExpandedMenu] = useState<string>('APM');
+export default function Sidebar({ activeTab, onTabChange, onKubernetesChange, activeSection }: SidebarProps) {
+  const [expandedMenu, setExpandedMenu] = useState<string>(activeSection === 'kubernetes' ? 'Kubernetes' : 'APM');
 
   const toggleSubmenu = (label: string) => {
     setExpandedMenu(expandedMenu === label ? '' : label);
@@ -62,10 +72,17 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       } else {
         onTabChange(subItem.toLowerCase() as APMTab);
       }
+    } else if (parentLabel === 'Kubernetes' && onKubernetesChange) {
+      if (subItem === 'Monitor') {
+        onKubernetesChange('overview');
+      } else {
+        onKubernetesChange(subItem.toLowerCase() as KubernetesTab);
+      }
     }
   };
 
-  const isMonitorTab = (tab: APMTab) => ['transaction', 'rum', 'was'].includes(tab);
+  const isMonitorTab = (tab: APMTab | KubernetesTab) => ['transaction', 'rum', 'was'].includes(tab);
+  const isKubernetesTab = (tab: APMTab | KubernetesTab) => ['overview', 'cluster', 'node', 'pod', 'namespace', 'network', 'storage', 'workloads'].includes(tab);
 
   return (
     <aside className="w-64 border-r bg-background flex flex-col">
@@ -84,8 +101,9 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             const isExpanded = expandedMenu === item.label;
             let isActive = item.active;
 
-            if (item.label === 'APM' && isMonitorTab(activeTab)) {
-              // Keep APM active if we are in a monitor sub-tab
+            if (item.label === 'APM' && activeSection === 'apm') {
+              isActive = true;
+            } else if (item.label === 'Kubernetes' && activeSection === 'kubernetes') {
               isActive = true;
             }
 
@@ -111,8 +129,14 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     {item.submenu.map((subItem) => {
                       // Determine if this subItem is active
                       let isSubActive = false;
-                      if (item.label === 'APM') {
+                      if (item.label === 'APM' && activeSection === 'apm') {
                         if (subItem === 'Monitor' && isMonitorTab(activeTab)) {
+                          isSubActive = true;
+                        } else if (subItem.toLowerCase() === activeTab) {
+                          isSubActive = true;
+                        }
+                      } else if (item.label === 'Kubernetes' && activeSection === 'kubernetes') {
+                        if (subItem === 'Monitor' && (activeTab === 'overview' || isKubernetesTab(activeTab))) {
                           isSubActive = true;
                         } else if (subItem.toLowerCase() === activeTab) {
                           isSubActive = true;
