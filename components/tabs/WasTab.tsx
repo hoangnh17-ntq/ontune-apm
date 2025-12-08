@@ -12,7 +12,11 @@ import WasListWidget from '@/components/monitor/WasListWidget';
 import WasDetailSlider from '@/components/monitor/WasDetailSlider';
 import { WasSummary } from '@/types/apm';
 
-export default function WasTab() {
+interface WasTabProps {
+    initialSelectedWasId?: string | null;
+}
+
+export default function WasTab({ initialSelectedWasId }: WasTabProps) {
     const [jvmMetrics, setJvmMetrics] = useState<any[]>([]);
     const [responseTimes, setResponseTimes] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
@@ -47,6 +51,17 @@ export default function WasTab() {
             { id: 5, timestamp: '10:03:45', level: 'INFO', message: 'Cache cleared', source: 'CacheManager' },
         ]);
     }, []);
+
+    // Handle deep linking / initial selection
+    useEffect(() => {
+        if (initialSelectedWasId && wasList.length > 0) {
+            const target = wasList.find(w => w.id === initialSelectedWasId);
+            if (target) {
+                setSelectedWas(target);
+                setShowWasDetail(true);
+            }
+        }
+    }, [initialSelectedWasId, wasList]);
 
     const currentJvm = jvmMetrics[jvmMetrics.length - 1] || { cpu: 0, memory: 0 };
 

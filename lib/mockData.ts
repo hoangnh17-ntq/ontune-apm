@@ -1,10 +1,10 @@
 // Mock Data Generator for APM
 
-import { 
-  Transaction, 
-  TransactionMethod, 
-  TransactionStatus, 
-  ActiveStatus, 
+import {
+  Transaction,
+  TransactionMethod,
+  TransactionStatus,
+  ActiveStatus,
   APMMetrics,
   Span,
   JVMMetrics,
@@ -54,7 +54,7 @@ const mockDomains = [
   'status.example.io'
 ];
 
-const mockWASNames = [
+export const mockWASNames = [
   'auth-service',
   'payment-gateway',
   'order-service',
@@ -62,9 +62,7 @@ const mockWASNames = [
   'notification-service',
   'user-profile',
   'analytics-worker',
-  'reporting-api',
-  'device-hub',
-  'cdn-edge'
+  'reporting-api'
 ];
 
 function getTransactionStatus(responseTime: number): TransactionStatus {
@@ -78,12 +76,12 @@ export function generateTransaction(timestamp?: number): Transaction {
   const method = methods[Math.floor(Math.random() * methods.length)];
   const agent = agents[Math.floor(Math.random() * agents.length)];
   const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
-  
+
   // Generate response time with realistic distribution matching WhaTap categories
   let responseTime: number;
   const random = Math.random();
   const hasError = Math.random() > 0.99;
-  
+
   if (hasError) {
     responseTime = 8000 + Math.random() * 4000; // Error: 8-12s
   } else if (random > 0.85) {
@@ -96,11 +94,11 @@ export function generateTransaction(timestamp?: number): Transaction {
     // 65% normal (0-3s) - BLUE
     responseTime = 100 + Math.random() * 2900;
   }
-  
+
   const status = hasError ? 'error' : getTransactionStatus(responseTime);
   const txId = `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const traceId = `trace-${txId}`;
-  
+
   return {
     id: txId,
     traceId,
@@ -125,12 +123,12 @@ export function generateTransactionHistory(count: number = 500, timeRangeMinutes
   const transactions: Transaction[] = [];
   const now = Date.now();
   const timeRange = timeRangeMinutes * 60 * 1000;
-  
+
   for (let i = 0; i < count; i++) {
     const timestamp = now - Math.random() * timeRange;
     transactions.push(generateTransaction(timestamp));
   }
-  
+
   return transactions.sort((a, b) => a.timestamp - b.timestamp);
 }
 
@@ -145,19 +143,19 @@ export function generateActiveStatus(): ActiveStatus[] {
 export function generateAPMMetrics(): APMMetrics {
   const now = Date.now();
   const hoursInDay = 24;
-  
+
   // Generate TPS data for today (hourly)
-  const todayTPS = Array.from({ length: hoursInDay }, () => 
+  const todayTPS = Array.from({ length: hoursInDay }, () =>
     Math.floor(50 + Math.random() * 150)
   );
-  
+
   // Generate visits data for today (hourly)
-  const todayVisits = Array.from({ length: hoursInDay }, () => 
+  const todayVisits = Array.from({ length: hoursInDay }, () =>
     Math.floor(500 + Math.random() * 1500)
   );
-  
+
   const avgResponseTime = 100 + Math.random() * 200;
-  
+
   return {
     totalTransactions: 12458,
     activeTransactions: 310,
@@ -183,23 +181,23 @@ export function generateAPMMetrics(): APMMetrics {
 export class TransactionStream {
   private interval: NodeJS.Timeout | null = null;
   private callbacks: Array<(transaction: Transaction) => void> = [];
-  
+
   start(intervalMs: number = 2000) {
     if (this.interval) return;
-    
+
     this.interval = setInterval(() => {
       const transaction = generateTransaction();
       this.callbacks.forEach(cb => cb(transaction));
     }, intervalMs);
   }
-  
+
   stop() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
     }
   }
-  
+
   subscribe(callback: (transaction: Transaction) => void) {
     this.callbacks.push(callback);
     return () => {
@@ -212,7 +210,7 @@ export class TransactionStream {
 export function generateSpans(transactionId: string, depth: number = 3): Span[] {
   const spans: Span[] = [];
   const traceId = `trace-${transactionId}`;
-  
+
   // Root span - Controller
   const rootSpan: Span = {
     spanId: `span-${Date.now()}-0`,
@@ -227,7 +225,7 @@ export function generateSpans(transactionId: string, depth: number = 3): Span[] 
     methodName: 'createOrder'
   };
   spans.push(rootSpan);
-  
+
   // Service layer span
   const serviceSpan: Span = {
     spanId: `span-${Date.now()}-1`,
@@ -243,7 +241,7 @@ export function generateSpans(transactionId: string, depth: number = 3): Span[] 
     methodName: 'processOrder'
   };
   spans.push(serviceSpan);
-  
+
   // DB span
   const dbSpan: Span = {
     spanId: `span-${Date.now()}-2`,
@@ -258,7 +256,7 @@ export function generateSpans(transactionId: string, depth: number = 3): Span[] 
     sqlStatement: 'INSERT INTO orders (customer_id, total) VALUES (?, ?)'
   };
   spans.push(dbSpan);
-  
+
   // External API call span
   const apiSpan: Span = {
     spanId: `span-${Date.now()}-3`,
@@ -272,7 +270,7 @@ export function generateSpans(transactionId: string, depth: number = 3): Span[] 
     kind: 'CLIENT'
   };
   spans.push(apiSpan);
-  
+
   return spans;
 }
 
@@ -435,7 +433,7 @@ export function generateWorkerThreadState(): WorkerThreadState {
   const busy = Math.floor(50 + Math.random() * 100);
   const queueSize = Math.floor(Math.random() * 30);
   const queueCapacity = 500;
-  
+
   return {
     total,
     busy,
@@ -457,7 +455,7 @@ export function generateDBTransactions(javaTransactionId: string, count: number 
     'DELETE FROM cart WHERE user_id = ? AND session_expired = true',
     'SELECT o.*, u.name FROM orders o JOIN users u ON o.user_id = u.id WHERE o.status = ?'
   ];
-  
+
   for (let i = 0; i < count; i++) {
     transactions.push({
       id: `db-tx-${Date.now()}-${i}`,
@@ -472,7 +470,7 @@ export function generateDBTransactions(javaTransactionId: string, count: number 
       sessionId: `session-${Math.floor(Math.random() * 100)}`
     });
   }
-  
+
   return transactions;
 }
 

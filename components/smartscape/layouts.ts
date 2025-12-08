@@ -61,14 +61,14 @@ const createK8sData = () => {
     // 2. Layer: PODS & 3. WORKLOADS & 4. SERVICES (Application Logic)
     // Generate more dense graph
     const services = [
-        { id: 'svc-pay', label: 'payment-svc', tech: 'java' },
-        { id: 'svc-auth', label: 'auth-service', tech: 'go' },
-        { id: 'svc-inv', label: 'inventory', tech: 'nodejs' },
+        { id: 'svc-auth', label: 'auth-service', tech: 'java' },
+        { id: 'svc-pay', label: 'payment-gateway', tech: 'java' },
+        { id: 'svc-ord', label: 'order-service', tech: 'java' },
+        { id: 'svc-inv', label: 'inventory-service', tech: 'nodejs' },
+        { id: 'svc-not', label: 'notification-service', tech: 'nodejs' },
         { id: 'svc-usr', label: 'user-profile', tech: 'python' },
-        { id: 'svc-cart', label: 'cart-service', tech: 'nodejs' },
-        { id: 'svc-rec', label: 'recommendation', tech: 'python' },
-        { id: 'svc-web', label: 'frontend-web', tech: 'react' },
-        { id: 'svc-gate', label: 'api-gateway', tech: 'nginx' }
+        { id: 'svc-ana', label: 'analytics-worker', tech: 'python' },
+        { id: 'svc-rep', label: 'reporting-api', tech: 'go' }
     ];
 
     let podIndex = 0;

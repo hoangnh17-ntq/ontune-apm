@@ -2,14 +2,18 @@ import React from 'react';
 import { X, ExternalLink, Activity, FileText, GitBranch, ArrowRightLeft, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigation } from '@/contexts/NavigationContext';
+import { Button } from '@/components/ui/button';
+import { mockWASNames } from '@/lib/mockData';
 
 interface NodeDetailSidebarProps {
     nodeData: any;
     isOpen: boolean;
     onClose: () => void;
+    className?: string;
 }
 
-export const NodeDetailSidebar = ({ nodeData, isOpen, onClose }: NodeDetailSidebarProps) => {
+export const NodeDetailSidebar = ({ nodeData, isOpen, onClose, className }: NodeDetailSidebarProps) => {
     if (!nodeData) return null;
 
     const { label, subLabel, type, status, technology } = nodeData;
@@ -23,7 +27,8 @@ export const NodeDetailSidebar = ({ nodeData, isOpen, onClose }: NodeDetailSideb
         <div
             className={cn(
                 "fixed top-0 right-0 h-full w-[450px] bg-[#1a1a20] border-l border-gray-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-[100] flex flex-col font-sans",
-                isOpen ? "translate-x-0" : "translate-x-full"
+                isOpen ? "translate-x-0" : "translate-x-full",
+                className
             )}
         >
             {/* Header */}
@@ -52,20 +57,39 @@ export const NodeDetailSidebar = ({ nodeData, isOpen, onClose }: NodeDetailSideb
                 </div>
             </div>
 
-            {/* Content - Tabs (Slide 5.1) */}
+            {/* Content Tabs */}
             <div className="flex-1 overflow-y-auto bg-[#1a1a20]">
                 <Tabs defaultValue="overview" className="w-full">
-                    <div className="px-5 pt-4 border-b border-gray-800 bg-[#1a1a20] sticky top-0 z-10">
-                        <TabsList className="bg-[#2a2a35] text-gray-400 w-full justify-start h-9 p-0.5">
-                            <TabsTrigger value="overview" className="data-[state=active]:bg-[#111115] data-[state=active]:text-white text-xs h-8 px-4">Overview</TabsTrigger>
-                            <TabsTrigger value="traces" className="data-[state=active]:bg-[#111115] data-[state=active]:text-white text-xs h-8 px-4">Traces</TabsTrigger>
-                            <TabsTrigger value="metrics" className="data-[state=active]:bg-[#111115] data-[state=active]:text-white text-xs h-8 px-4">Metrics</TabsTrigger>
-                            <TabsTrigger value="infra" className="data-[state=active]:bg-[#111115] data-[state=active]:text-white text-xs h-8 px-4">Infra</TabsTrigger>
+                    <div className="px-5 pt-4 border-b border-gray-800 sticky top-0 bg-[#1a1a20] z-10">
+                        <TabsList className="bg-transparent h-auto p-0 w-full justify-start space-x-6">
+                            <TabsTrigger
+                                value="overview"
+                                className="bg-transparent p-0 pb-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-400 data-[state=active]:shadow-none text-gray-400 hover:text-gray-200 transition-all"
+                            >
+                                Overview
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="apm"
+                                className="bg-transparent p-0 pb-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-400 data-[state=active]:shadow-none text-gray-400 hover:text-gray-200 transition-all"
+                            >
+                                APM
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="traces"
+                                className="bg-transparent p-0 pb-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-400 data-[state=active]:shadow-none text-gray-400 hover:text-gray-200 transition-all"
+                            >
+                                Traces
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="metrics"
+                                className="bg-transparent p-0 pb-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-400 data-[state=active]:shadow-none text-gray-400 hover:text-gray-200 transition-all"
+                            >
+                                Metrics
+                            </TabsTrigger>
                         </TabsList>
                     </div>
 
-                    <TabsContent value="overview" className="p-5 space-y-6 focus:outline-none">
-
+                    <TabsContent value="overview" className="p-5 space-y-6 mt-0">
                         {/* Service Map Summary */}
                         <div className="bg-[#1e1e24] rounded-lg border border-gray-800 p-4">
                             <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
@@ -134,11 +158,15 @@ export const NodeDetailSidebar = ({ nodeData, isOpen, onClose }: NodeDetailSideb
                         </div>
                     </TabsContent>
 
+                    <TabsContent value="apm" className="p-5 space-y-6 mt-0">
+                        <APMTabContent nodeLabel={label} />
+                    </TabsContent>
+
+                    <TabsContent value="traces" className="p-5 space-y-6 mt-0">
+                        <div className="text-center text-gray-500 text-sm py-10">Trace List Placeholder</div>
+                    </TabsContent>
                     <TabsContent value="metrics" className="p-5">
                         <div className="text-center text-gray-500 text-sm py-10">Metric Charts Placeholder</div>
-                    </TabsContent>
-                    <TabsContent value="traces" className="p-5">
-                        <div className="text-center text-gray-500 text-sm py-10">Trace List Placeholder</div>
                     </TabsContent>
                 </Tabs>
             </div>
@@ -153,3 +181,44 @@ export const NodeDetailSidebar = ({ nodeData, isOpen, onClose }: NodeDetailSideb
         </div>
     );
 };
+
+function APMTabContent({ nodeLabel }: { nodeLabel: string }) {
+    const { navigateToApmWas } = useNavigation();
+
+    // Find WAS ID based on label
+    // Mock logic matching mockData.ts generation: id = `was-${index + 1}`
+    // Use findIndex with includes to handle cases like 'order-service-deploy'
+    const wasIndex = mockWASNames.findIndex(name => nodeLabel.includes(name));
+    const targetWasId = wasIndex !== -1 ? `was-${wasIndex + 1}` : 'was-1'; // Fallback to was-1
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-[#111115] border border-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-200">APM Integration</h3>
+                    <div className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs font-medium">Connected</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <div className="text-xs text-gray-500 mb-1">Response Time</div>
+                        <div className="text-xl font-mono text-white">124<span className="text-xs text-gray-500 ml-1">ms</span></div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-gray-500 mb-1">Throughput</div>
+                        <div className="text-xl font-mono text-white">840<span className="text-xs text-gray-500 ml-1">tps</span></div>
+                    </div>
+                </div>
+
+                <Button
+                    variant="outline"
+                    className="w-full border-blue-500/30 hover:bg-blue-500/10 text-blue-400 hover:text-blue-300 transition-colors gap-2"
+                    onClick={() => navigateToApmWas(targetWasId)}
+                >
+                    <Activity size={16} />
+                    View Detail
+                </Button>
+            </div>
+        </div>
+    );
+}

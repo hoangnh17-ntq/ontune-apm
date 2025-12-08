@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import ContextSidebar from '@/components/layout/ContextSidebar';
 import CompactTabBar from '@/components/layout/CompactTabBar';
+import KubernetesTabBar from '@/components/kubernetes/KubernetesTabBar';
 import { AppTab } from '@/types/tabs';
 import OverviewTab from '@/components/tabs/OverviewTab';
 import MonitorTab from '@/components/tabs/MonitorTab';
@@ -17,6 +18,18 @@ import ConfigTab from '@/components/tabs/ConfigTab';
 import SelectApplicationView from '@/components/SelectApplicationView';
 import TopologyTab from '@/components/tabs/TopologyTab';
 import { APMTab } from '@/types/apm';
+import { KubernetesTab } from '@/types/kubernetes';
+
+// Kubernetes tabs
+import KubernetesOverviewTab from '@/components/kubernetes/tabs/OverviewTab';
+import ClusterTab from '@/components/kubernetes/tabs/ClusterTab';
+import NodeTab from '@/components/kubernetes/tabs/NodeTab';
+import PodTab from '@/components/kubernetes/tabs/PodTab';
+import NamespaceTab from '@/components/kubernetes/tabs/NamespaceTab';
+import NetworkTab from '@/components/kubernetes/tabs/NetworkTab';
+import StorageTab from '@/components/kubernetes/tabs/StorageTab';
+import WorkloadsTab from '@/components/kubernetes/tabs/WorkloadsTab';
+import { NavigationProvider } from '@/contexts/NavigationContext';
 
 export default function Home() {
   const [appTabs, setAppTabs] = useState<AppTab[]>([
@@ -24,6 +37,8 @@ export default function Home() {
   ]);
   const [activeAppTabId, setActiveAppTabId] = useState<string>('demo-8101');
   const [projectSources, setProjectSources] = useState<string[]>(['proj-1']);
+  const [activeSection, setActiveSection] = useState<'apm' | 'kubernetes'>('apm');
+  const [kubernetesTab, setKubernetesTab] = useState<KubernetesTab>('overview');
   const [tabStates, setTabStates] = useState<Record<string, {
     apmTab: APMTab;
     activeFilters: any;
@@ -141,75 +156,119 @@ export default function Home() {
   const isOverviewActive = false;
   const currentApp = appTabs.find(t => t.id === activeAppTabId);
 
+  const handleKubernetesChange = (tab: KubernetesTab) => {
+    setActiveSection('kubernetes');
+    setKubernetesTab(tab);
+  };
+
+  // --- Navigation Context Logic ---
+  const [navigatedWasId, setNavigatedWasId] = useState<string | null>(null);
+
+  const navigateToApmWas = (wasId: string) => {
+    // 1. Switch to APM
+    setActiveSection('apm');
+    // 2. Switch to WAS Tab
+    handleAPMTabChange('was');
+    // 3. Set Target WAS ID (will be passed to WasTab)
+    setNavigatedWasId(wasId);
+  };
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar - always show */}
-      <Sidebar
-        activeTab={currentTabState.apmTab}
-        onTabChange={handleAPMTabChange}
-      />
-
-      {/* Contextual Sidebar per UX */}
-      <ContextSidebar
-        activeTab={currentTabState.apmTab}
-        selectedProjectIds={projectSources}
-        onProjectSelect={setProjectSources}
-      />
-
-      {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Compact Header with App Tabs */}
-        <Header
-          appTabs={appTabs}
-          activeAppTabId={activeAppTabId}
-          onTabChange={setActiveAppTabId}
-          onTabClose={handleCloseTab}
-          onOverviewClick={handleOverviewClick}
+    <NavigationProvider value={{ navigateToApmWas }}>
+      <div className="flex h-screen overflow-hidden bg-background">
+        {/* Sidebar - always show */}
+        <Sidebar
+          activeTab={activeSection === 'apm' ? currentTabState.apmTab : kubernetesTab}
+          onTabChange={(tab) => {
+            setActiveSection('apm');
+            handleAPMTabChange(tab);
+          }}
+          onKubernetesChange={handleKubernetesChange}
+          activeSection={activeSection}
         />
 
-        {/* Compact Tab Bar - APM Tabs + App/Agent Selector in one row */}
-        <CompactTabBar
-          activeTab={currentTabState.apmTab}
-        onTabChange={handleAPMTabChange}
-        isOverview={isOverviewActive}
-      />
+        {/* Contextual Sidebar per UX - only for APM */}
+        {activeSection === 'apm' && (
+          <ContextSidebar
+            activeTab={currentTabState.apmTab}
+            selectedProjectIds={projectSources}
+            onProjectSelect={setProjectSources}
+          />
+        )}
 
-        {/* Tab Content */}
-        <main className="flex-1 overflow-auto p-6">
-          {currentTabState.apmTab === 'transaction' && (
-            <TransactionTab
-              onNavigate={handleNavigate}
-              activeFilters={currentTabState.activeFilters}
-              onChartFilter={handleChartFilter}
-              projectSources={projectSources}
+        {/* Main Content */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Compact Header with App Tabs - only for APM */}
+          {activeSection === 'apm' && (
+            <Header
+              appTabs={appTabs}
+              activeAppTabId={activeAppTabId}
+              onTabChange={setActiveAppTabId}
+              onTabClose={handleCloseTab}
+              onOverviewClick={handleOverviewClick}
             />
           )}
-          {currentTabState.apmTab === 'rum' && (
-            <RumTab />
-          )}
-          {currentTabState.apmTab === 'was' && (
-            <WasTab />
-          )}
-          {currentTabState.apmTab === 'analysis' && (
-            <AnalysisTabRefactored
-              activeAction={currentTabState.activeAction}
-              onNavigate={handleNavigate}
+
+          {/* Tab Bars */}
+          {activeSection === 'apm' ? (
+            <CompactTabBar
+              activeTab={currentTabState.apmTab}
+              onTabChange={handleAPMTabChange}
+              isOverview={isOverviewActive}
+            />
+          ) : (
+            <KubernetesTabBar
+              activeTab={kubernetesTab}
+              onTabChange={setKubernetesTab}
             />
           )}
-          {currentTabState.apmTab === 'topology' && (
-            <TopologyTab
-              selectedApp={currentApp?.appId}
-              onOpenApp={handleOpenApp}
-            />
-          )}
-          {currentTabState.apmTab === 'report' && (
-            <ReportTabRefactored />
-          )}
-          {currentTabState.apmTab === 'config' && (
-            <ConfigTab activeAction={currentTabState.activeAction} />
-          )}
-        </main>
+
+          {/* Tab Content */}
+          <main className="flex-1 overflow-auto p-6">
+            {activeSection === 'apm' ? (
+              <>
+                {currentTabState.apmTab === 'transaction' && (
+                  <TransactionTab
+                    onNavigate={handleNavigate}
+                    activeFilters={currentTabState.activeFilters}
+                    onChartFilter={handleChartFilter}
+                    projectSources={projectSources}
+                  />
+                )}
+                {currentTabState.apmTab === 'rum' && <RumTab />}
+                {currentTabState.apmTab === 'was' && <WasTab initialSelectedWasId={navigatedWasId} />}
+                {currentTabState.apmTab === 'analysis' && (
+                  <AnalysisTabRefactored
+                    activeAction={currentTabState.activeAction}
+                    onNavigate={handleNavigate}
+                  />
+                )}
+                {currentTabState.apmTab === 'topology' && (
+                  <TopologyTab
+                    selectedApp={currentApp?.appId}
+                    onOpenApp={handleOpenApp}
+                  />
+                )}
+                {currentTabState.apmTab === 'report' && <ReportTabRefactored />}
+                {currentTabState.apmTab === 'config' && (
+                  <ConfigTab activeAction={currentTabState.activeAction} />
+                )}
+              </>
+            ) : (
+              <>
+                {kubernetesTab === 'overview' && <KubernetesOverviewTab />}
+                {kubernetesTab === 'cluster' && <ClusterTab />}
+                {kubernetesTab === 'node' && <NodeTab />}
+                {kubernetesTab === 'pod' && <PodTab />}
+                {kubernetesTab === 'namespace' && <NamespaceTab />}
+                {kubernetesTab === 'network' && <NetworkTab />}
+                {kubernetesTab === 'storage' && <StorageTab />}
+                {kubernetesTab === 'workloads' && <WorkloadsTab />}
+              </>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </NavigationProvider>
   );
 }
