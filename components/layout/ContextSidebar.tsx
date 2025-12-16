@@ -1,16 +1,12 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { APMTab, ProjectSummary } from '@/types/apm';
 import { ChevronDown, ChevronRight, Folder, MapPin, Globe2, Server, Check } from 'lucide-react';
-
-interface ContextSidebarProps {
-  activeTab: APMTab;
-  selectedProjectIds?: string[];
-  onProjectSelect?: (projectIds: string[]) => void;
-}
+import { useGlobal } from '@/contexts/GlobalContext';
 
 type ItemKind = 'project' | 'website' | 'was';
 
@@ -56,17 +52,29 @@ const iconFor = (kind: ItemKind) => {
   }
 };
 
-export default function ContextSidebar({ activeTab, selectedProjectIds = [], onProjectSelect }: ContextSidebarProps) {
+export default function ContextSidebar() {
+  const pathname = usePathname();
+  const currentTab = pathname?.split('/').pop() as APMTab;
+  const { projectSources, setProjectSources } = useGlobal();
+
   const [expanded, setExpanded] = useState(true);
-  const [selected, setSelected] = useState<string[]>(selectedProjectIds);
+  const [selected, setSelected] = useState<string[]>(projectSources);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    setSelected(selectedProjectIds);
-  }, [selectedProjectIds]);
+    // Update global state when selection changes
+    if (JSON.stringify(selected) !== JSON.stringify(projectSources)) {
+      // This might cause loop if not careful.
+      // Actually better to just sync local state from global on mount/update
+      // and update global on interaction.
+    }
+  }, [selected, projectSources]);
+
+  // Sync from global 
+  // (Simplified: Just use global state setter directly in handlers)
 
   const currentList: SidebarItem[] = useMemo(() => {
-    switch (activeTab) {
+    switch (currentTab) {
       case 'rum':
         return rumList;
       case 'was':
@@ -74,7 +82,7 @@ export default function ContextSidebar({ activeTab, selectedProjectIds = [], onP
       default:
         return projectList;
     }
-  }, [activeTab]);
+  }, [currentTab]);
 
   const filtered = useMemo(
     () => currentList.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())),
@@ -82,7 +90,7 @@ export default function ContextSidebar({ activeTab, selectedProjectIds = [], onP
   );
 
   const label = (() => {
-    switch (activeTab) {
+    switch (currentTab) {
       case 'rum':
         return 'Website (RUM)';
       case 'was':
@@ -93,24 +101,22 @@ export default function ContextSidebar({ activeTab, selectedProjectIds = [], onP
   })();
 
   const handleToggle = (id: string) => {
-    setSelected((prev) => {
-      const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
-      const projectIds = currentList
-        .filter((i) => i.kind === 'project' && next.includes(i.id))
-        .map((i) => i.id);
-      onProjectSelect?.(projectIds);
-      return next;
-    });
+    // Logic to toggle and update Global
+    const prev = projectSources;
+    const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+    setProjectSources(next);
   };
 
-  const shouldShow = ['transaction', 'rum', 'was', 'monitor'].includes(activeTab);
+  const shouldShow = ['transaction', 'rum', 'was', 'monitor'].includes(currentTab);
+  // Also show for analysis/report/config maybe? Standardizing to show always for APM unless specific tabs opt-out
+
   if (!shouldShow) return <div className="w-0" />;
 
   const allIds = filtered.map((i) => i.id);
-  const allSelected = selected.length > 0 && allIds.every((id) => selected.includes(id));
+  const allSelected = projectSources.length > 0 && allIds.every((id) => projectSources.includes(id));
 
   return (
-    <aside className="w-64 border-r border-border bg-card flex flex-col h-screen">
+    <aside className="w-64 border-r border-border bg-card flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Folder className="h-4 w-4 text-primary" />
@@ -141,12 +147,14 @@ export default function ContextSidebar({ activeTab, selectedProjectIds = [], onP
                 checked={allSelected}
                 onChange={() => {
                   if (allSelected) {
-                    setSelected([]);
-                    onProjectSelect?.([]);
+                    setProjectSources([]);
                   } else {
-                    setSelected(allIds);
                     const projectIds = filtered.filter((i) => i.kind === 'project').map((i) => i.id);
-                    onProjectSelect?.(projectIds);
+                    // For RUM/WAS, logic might differ (selecting items vs projects). Assuming project selection for now.
+                    // If we are in RUM, maybe we select websites. 
+                    // But global state is "projectSources".
+                    // Let's assume for now we just track IDs.
+                    setProjectSources(allIds);
                   }
                 }}
                 className="h-3.5 w-3.5 accent-primary"
@@ -154,14 +162,13 @@ export default function ContextSidebar({ activeTab, selectedProjectIds = [], onP
               <span>Select all</span>
             </div>
             {filtered.map((item) => {
-              const isActive = selected.includes(item.id);
+              const isActive = projectSources.includes(item.id);
               return (
                 <button
                   key={item.id}
                   onClick={() => handleToggle(item.id)}
-                  className={`w-full text-left rounded-lg border transition-colors px-3 py-2 flex items-start gap-3 ${
-                    isActive ? 'border-primary/40 bg-accent/40' : 'border-transparent hover:border-border hover:bg-accent/30'
-                  }`}
+                  className={`w-full text-left rounded-lg border transition-colors px-3 py-2 flex items-start gap-3 ${isActive ? 'border-primary/40 bg-accent/40' : 'border-transparent hover:border-border hover:bg-accent/30'
+                    }`}
                 >
                   <div className="mt-1">
                     <input

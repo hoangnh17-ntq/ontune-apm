@@ -29,7 +29,7 @@ interface SmartscapeSidebarProps {
 
 export const SmartscapeSidebar = ({ activeLayer, onLayerSelect, relatedCounts }: SmartscapeSidebarProps) => {
     return (
-        <div className="w-[200px] h-full bg-[#1e1e1e] border-r border-[#333] flex flex-col shrink-0 z-20 shadow-xl">
+        <div className="w-[200px] h-full bg-card border-r border-border flex flex-col shrink-0 z-20 shadow-xl">
             {/* List of Layers */}
             <div className="flex-1 overflow-y-auto py-2">
                 {layers.map((layer) => {
@@ -48,14 +48,14 @@ export const SmartscapeSidebar = ({ activeLayer, onLayerSelect, relatedCounts }:
                             className={cn(
                                 "relative h-[100px] flex flex-col justify-center px-6 cursor-pointer transition-all border-l-4 group",
                                 isActive
-                                    ? "bg-[#252526] border-blue-500"
-                                    : "border-transparent hover:bg-[#252526]"
+                                    ? "bg-accent border-primary"
+                                    : "border-transparent hover:bg-muted/50"
                             )}
                         >
                             {/* Label Row */}
-                            <div className="flex items-center gap-3 text-gray-400 group-hover:text-white mb-2 transition-colors">
-                                <Icon size={18} className={cn(hasRelation ? "text-white" : "")} />
-                                <span className={cn("font-medium text-sm", hasRelation ? "text-white" : "")}>{layer.label}</span>
+                            <div className="flex items-center gap-3 text-muted-foreground group-hover:text-foreground mb-2 transition-colors">
+                                <Icon size={18} className={cn(hasRelation ? "text-foreground" : "")} />
+                                <span className={cn("font-medium text-sm", hasRelation ? "text-foreground" : "")}>{layer.label}</span>
                             </div>
 
                             {/* Styling Graphic (The diagonal line + count from screenshot) */}
@@ -63,19 +63,19 @@ export const SmartscapeSidebar = ({ activeLayer, onLayerSelect, relatedCounts }:
                                 {/* The visual "bar" graphic */}
                                 <div className={cn(
                                     "absolute left-0 bottom-1 h-2 w-16 transform -skew-x-[45deg] transition-colors",
-                                    isActive ? "bg-blue-500" : (hasRelation ? "bg-gray-500" : "bg-gray-700 group-hover:bg-gray-600")
+                                    isActive ? "bg-primary" : (hasRelation ? "bg-muted-foreground" : "bg-muted group-hover:bg-muted-foreground/50")
                                 )} />
 
                                 {/* Count Display (Related / Total) */}
                                 <div className="absolute right-0 bottom-0 flex items-baseline gap-1">
                                     {relatedCounts && (
-                                        <span className="text-xl font-bold text-blue-400">
+                                        <span className="text-xl font-bold text-primary">
                                             {relatedCount}
                                         </span>
                                     )}
                                     <span className={cn(
                                         "text-xl font-light",
-                                        relatedCounts ? "text-gray-500 text-sm" : "text-white"
+                                        relatedCounts ? "text-muted-foreground text-sm" : "text-foreground"
                                     )}>
                                         {relatedCounts ? `/${layer.count}` : layer.count}
                                     </span>
@@ -87,10 +87,10 @@ export const SmartscapeSidebar = ({ activeLayer, onLayerSelect, relatedCounts }:
             </div>
 
             {/* Bottom Branding or Config */}
-            <div className="p-4 border-t border-[#333]">
-                <div className="text-xs text-gray-500 flex items-center justify-between">
+            <div className="p-4 border-t border-border">
+                <div className="text-xs text-muted-foreground flex items-center justify-between">
                     <span>Viewing:</span>
-                    <span className="text-blue-400 font-semibold">{activeLayer ? activeLayer.toUpperCase() : 'ALL'}</span>
+                    <span className="text-primary font-semibold">{activeLayer ? activeLayer.toUpperCase() : 'ALL'}</span>
                 </div>
             </div>
         </div>

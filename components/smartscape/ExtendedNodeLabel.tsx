@@ -19,7 +19,7 @@ export const ExtendedNodeLabel = ({ label, subLabel, type, icon: Icon, styleColo
 
             {/* The Box */}
             <div
-                className="flex items-center bg-[#1e1e24] border-l-4 pr-3 pl-2 py-2 shadow-2xl min-w-[180px] max-w-[250px]"
+                className="flex items-center bg-card border-l-4 pr-3 pl-2 py-2 shadow-2xl min-w-[180px] max-w-[250px] border-t border-r border-b border-border rounded-r"
                 style={{ borderLeftColor: styleColor }}
             >
                 {/* Icon Circle */}
@@ -32,13 +32,13 @@ export const ExtendedNodeLabel = ({ label, subLabel, type, icon: Icon, styleColo
 
                 {/* Text Content */}
                 <div className="flex flex-col flex-1 mr-2 overflow-hidden">
-                    <span className="text-white text-xs font-bold truncate leading-tight">{label}</span>
-                    <span className="text-gray-400 text-[9px] uppercase tracking-wider truncate">{type}</span>
-                    {subLabel && <span className="text-gray-500 text-[9px] truncate">{subLabel}</span>}
+                    <span className="text-foreground text-xs font-bold truncate leading-tight">{label}</span>
+                    <span className="text-muted-foreground text-[9px] uppercase tracking-wider truncate">{type}</span>
+                    {subLabel && <span className="text-muted-foreground text-[9px] truncate">{subLabel}</span>}
                 </div>
 
                 {/* Action Icon */}
-                <ExternalLink size={12} className="text-gray-500 hover:text-white cursor-pointer ml-auto" />
+                <ExternalLink size={12} className="text-muted-foreground hover:text-foreground cursor-pointer ml-auto" />
             </div>
 
             {/* Vulnerability Tag (if present) */}

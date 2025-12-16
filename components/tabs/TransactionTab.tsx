@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Activity, Clock, Zap, AlertCircle, Info, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +34,7 @@ interface TransactionTabProps {
     projectSources?: string[];
 }
 
+
 export default function TransactionTab({
     onNavigate,
     selectedApp = 'demo-8104',
@@ -40,6 +42,9 @@ export default function TransactionTab({
     onChartFilter,
     projectSources = []
 }: TransactionTabProps) {
+    const searchParams = useSearchParams();
+    const queryTransactionId = searchParams.get('transactionId');
+
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [showTxSlider, setShowTxSlider] = useState(false);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -57,6 +62,29 @@ export default function TransactionTab({
         setMetrics(generateAPMMetrics());
         setTpsHistory(Array.from({ length: 24 }, () => 100 + Math.random() * 80));
     }, []);
+
+    // Handle Deep Linking to Transaction
+    useEffect(() => {
+        if (queryTransactionId) {
+            // Check if transaction exists in current list
+            const existingTx = transactions.find(t => t.id === queryTransactionId);
+
+            if (existingTx) {
+                setSelectedTransaction(existingTx);
+                setShowTxSlider(true);
+            } else {
+                // If not found (e.g. from a different mock session or disjoint data), generate it on the fly
+                // giving it a realistic recent timestamp so it appears "live"
+                const newMockTx = generateTransaction(Date.now() - 1000 * 60 * 5);
+                newMockTx.id = queryTransactionId;
+
+                // Add to list and select
+                setTransactions(prev => [newMockTx, ...prev]);
+                setSelectedTransaction(newMockTx);
+                setShowTxSlider(true);
+            }
+        }
+    }, [queryTransactionId]); // Run when URL param changes
 
     // Real-time updates - optimized interval
     useEffect(() => {
@@ -138,11 +166,11 @@ export default function TransactionTab({
                 </div>
 
                 {/* Project List Widget */}
-                <ProjectListWidget 
-                  onProjectSelect={(project) => {
-                    setSelectedProject(project);
-                    setShowProjectDetail(true);
-                  }}
+                <ProjectListWidget
+                    onProjectSelect={(project) => {
+                        setSelectedProject(project);
+                        setShowProjectDetail(true);
+                    }}
                 />
 
                 {/* Active Transaction Speed - Real-time Processing Visualization */}
@@ -185,24 +213,24 @@ export default function TransactionTab({
 
             {/* Project Detail Slider */}
             <ProjectDetailSlider
-              project={selectedProject}
-              transactions={transactions}
-              isOpen={showProjectDetail}
-              onClose={() => setShowProjectDetail(false)}
-              onSelectTransaction={(tx) => {
-                setSelectedTransaction(tx);
-                setShowProjectDetail(false);
-                setShowTxSlider(true);
-              }}
+                project={selectedProject}
+                transactions={transactions}
+                isOpen={showProjectDetail}
+                onClose={() => setShowProjectDetail(false)}
+                onSelectTransaction={(tx) => {
+                    setSelectedTransaction(tx);
+                    setShowProjectDetail(false);
+                    setShowTxSlider(true);
+                }}
             />
 
             <TransactionDetailSlider
-              transaction={selectedTransaction}
-              isOpen={showTxSlider && !!selectedTransaction}
-              onClose={() => {
-                setShowTxSlider(false);
-                setSelectedTransaction(null);
-              }}
+                transaction={selectedTransaction}
+                isOpen={showTxSlider && !!selectedTransaction}
+                onClose={() => {
+                    setShowTxSlider(false);
+                    setSelectedTransaction(null);
+                }}
             />
         </>
     );

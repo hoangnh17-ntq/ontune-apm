@@ -6,7 +6,7 @@ const createK8sData = () => {
     const edges: Edge[] = [];
     const layerYPositions: Record<string, number> = {};
 
-    const addNode = (id: string, label: string, type: 'namespace' | 'service' | 'workload' | 'pod' | 'node' | 'external', x: number, y: number, level: number, subLabel?: string, notifications?: number, technology?: string, vulnerability?: string) => {
+    const addNode = (id: string, label: string, type: 'namespace' | 'service' | 'workload' | 'pod' | 'node' | 'external', x: number, y: number, level: number, subLabel?: string, notifications?: number, technology?: string, vulnerability?: string, labels?: Record<string, string>) => {
         // Levels: 
         // 1: Node (Bottom)
         // 2: Pod
@@ -30,7 +30,8 @@ const createK8sData = () => {
                 notificationCount: notifications,
                 technology,
                 vulnerability: vulnerability as any,
-                showVulnerability: false
+                showVulnerability: false,
+                labels // Pass labels to data
             }
         });
     };
@@ -99,7 +100,11 @@ const createK8sData = () => {
             else if (vulnChance > 0.8) vuln = 'high';
             else if (vulnChance > 0.7) vuln = 'medium';
 
-            addNode(podId, `${svc.label}-${Math.floor(Math.random() * 1000)}`, 'pod', podX, 0, 2, 'Running', hasIssue ? 1 : 0, 'docker', vuln);
+            // Generate Mock APM ID
+            const apmId = `810${Math.floor(Math.random() * 5) + 1}`;
+            const labels = { 'apm-id': apmId };
+
+            addNode(podId, `${svc.label}-${Math.floor(Math.random() * 1000)}`, 'pod', podX, 0, 2, 'Running', hasIssue ? 1 : 0, 'docker', vuln, labels);
 
             addEdge(podId, workloadId, '#555', false);
 

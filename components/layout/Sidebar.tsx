@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Server,
@@ -10,21 +12,20 @@ import {
   Cloud,
   Activity,
   Database,
-  Link,
+  Link as LinkIcon,
   User,
   ChevronRight
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { APMTab } from '@/types/apm';
-import { KubernetesTab } from '@/types/kubernetes';
+import { useGlobal } from '@/contexts/GlobalContext';
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
   submenu?: string[];
-  active?: boolean;
   section?: 'apm' | 'kubernetes';
+  href?: string;
 }
 
 const navItems: NavItem[] = [
@@ -32,8 +33,8 @@ const navItems: NavItem[] = [
   { icon: Server, label: 'Server' },
   { icon: Box, label: 'VMware' },
   { icon: Terminal, label: 'XenServer' },
-  { 
-    icon: Boxes, 
+  {
+    icon: Boxes,
     label: 'Kubernetes',
     submenu: ['Monitor', 'Analysis', 'Report', 'Config'],
     section: 'kubernetes'
@@ -43,55 +44,71 @@ const navItems: NavItem[] = [
     icon: Activity,
     label: 'APM',
     submenu: ['Monitor', 'Analysis', 'Report', 'Config'],
-    active: true,
     section: 'apm'
   },
   { icon: Database, label: 'Database' },
-  { icon: Link, label: 'URL' },
+  { icon: LinkIcon, label: 'URL' },
   { icon: User, label: 'Admin' },
 ];
 
-interface SidebarProps {
-  activeTab: APMTab | KubernetesTab;
-  onTabChange: (tab: APMTab) => void;
-  onKubernetesChange?: (tab: KubernetesTab) => void;
-  activeSection: 'apm' | 'kubernetes';
-}
+export default function Sidebar() {
+  const pathname = usePathname();
+  const { activeAppTabId } = useGlobal(); // We need active app ID for APM links
 
-export default function Sidebar({ activeTab, onTabChange, onKubernetesChange, activeSection }: SidebarProps) {
+  const isKubernetes = pathname?.startsWith('/kubernetes');
+  const isApm = pathname?.startsWith('/apm');
+  const activeSection = isKubernetes ? 'kubernetes' : isApm ? 'apm' : null;
+
+  // Extract tab from path
+  const currentTab = pathname?.split('/').pop();
+
   const [expandedMenu, setExpandedMenu] = useState<string>(activeSection === 'kubernetes' ? 'Kubernetes' : 'APM');
+
+  useEffect(() => {
+    if (activeSection === 'kubernetes') setExpandedMenu('Kubernetes');
+    if (activeSection === 'apm') setExpandedMenu('APM');
+  }, [activeSection]);
 
   const toggleSubmenu = (label: string) => {
     setExpandedMenu(expandedMenu === label ? '' : label);
   };
 
-  const handleSubmenuClick = (parentLabel: string, subItem: string) => {
+  const getSubItemHref = (parentLabel: string, subItem: string) => {
+    const subLower = subItem.toLowerCase();
+
     if (parentLabel === 'APM') {
-      if (subItem === 'Monitor') {
-        onTabChange('transaction');
-      } else {
-        onTabChange(subItem.toLowerCase() as APMTab);
-      }
-    } else if (parentLabel === 'Kubernetes' && onKubernetesChange) {
-      if (subItem === 'Monitor') {
-        onKubernetesChange('overview');
-      } else {
-        onKubernetesChange(subItem.toLowerCase() as KubernetesTab);
-      }
+      // Default to transaction if Monitor is clicked
+      const targetTab = subItem === 'Monitor' ? 'transaction' : subLower;
+      const appId = activeAppTabId || 'demo-8101';
+      return `/apm/${appId}/${targetTab}`;
+    } else if (parentLabel === 'Kubernetes') {
+      const targetTab = subItem === 'Monitor' ? 'overview' : subLower;
+      return `/kubernetes/${targetTab}`;
     }
+    return '#';
   };
 
-  const isMonitorTab = (tab: APMTab | KubernetesTab) => ['transaction', 'rum', 'was'].includes(tab);
-  const isKubernetesTab = (tab: APMTab | KubernetesTab) => ['overview', 'cluster', 'node', 'pod', 'namespace', 'network', 'storage', 'workloads'].includes(tab);
+  const isActiveSubItem = (parentLabel: string, subItem: string) => {
+    const subLower = subItem.toLowerCase();
+    if (parentLabel === 'APM' && activeSection === 'apm') {
+      if (subItem === 'Monitor' && ['transaction', 'rum', 'was'].includes(currentTab || '')) return true;
+      if (subLower === currentTab) return true;
+    }
+    if (parentLabel === 'Kubernetes' && activeSection === 'kubernetes') {
+      if (subItem === 'Monitor' && (currentTab === 'overview' || ['cluster', 'node', 'pod'].includes(currentTab || ''))) return true; // simplified check
+      if (subLower === currentTab) return true;
+    }
+    return false;
+  };
 
   return (
-    <aside className="w-64 border-r bg-background flex flex-col">
+    <aside className="w-64 border-r bg-background flex flex-col h-full">
       {/* Logo at top */}
       <div className="p-4 border-b">
-        <a className="flex items-center space-x-2" href="/">
+        <Link className="flex items-center space-x-2" href="/">
           <Activity className="h-6 w-6 text-primary" />
           <span className="font-bold text-lg">onTune APM</span>
-        </a>
+        </Link>
       </div>
 
       <ScrollArea className="flex-1 py-4">
@@ -99,7 +116,7 @@ export default function Sidebar({ activeTab, onTabChange, onKubernetesChange, ac
           {navItems.map((item) => {
             const Icon = item.icon;
             const isExpanded = expandedMenu === item.label;
-            let isActive = item.active;
+            let isActive = false;
 
             if (item.label === 'APM' && activeSection === 'apm') {
               isActive = true;
@@ -127,32 +144,19 @@ export default function Sidebar({ activeTab, onTabChange, onKubernetesChange, ac
                 {item.submenu && isExpanded && (
                   <div className="mt-1 space-y-1 pl-6">
                     {item.submenu.map((subItem) => {
-                      // Determine if this subItem is active
-                      let isSubActive = false;
-                      if (item.label === 'APM' && activeSection === 'apm') {
-                        if (subItem === 'Monitor' && isMonitorTab(activeTab)) {
-                          isSubActive = true;
-                        } else if (subItem.toLowerCase() === activeTab) {
-                          isSubActive = true;
-                        }
-                      } else if (item.label === 'Kubernetes' && activeSection === 'kubernetes') {
-                        if (subItem === 'Monitor' && (activeTab === 'overview' || isKubernetesTab(activeTab))) {
-                          isSubActive = true;
-                        } else if (subItem.toLowerCase() === activeTab) {
-                          isSubActive = true;
-                        }
-                      }
+                      const href = getSubItemHref(item.label, subItem);
+                      const isSubActive = isActiveSubItem(item.label, subItem);
 
                       return (
-                        <Button
-                          key={subItem}
-                          variant={isSubActive ? "secondary" : "ghost"}
-                          size="sm"
-                          className="w-full justify-start"
-                          onClick={() => handleSubmenuClick(item.label, subItem)}
-                        >
-                          {subItem}
-                        </Button>
+                        <Link key={subItem} href={href} className="block">
+                          <Button
+                            variant={isSubActive ? "secondary" : "ghost"}
+                            size="sm"
+                            className="w-full justify-start"
+                          >
+                            {subItem}
+                          </Button>
+                        </Link>
                       );
                     })}
                   </div>

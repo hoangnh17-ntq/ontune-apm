@@ -696,7 +696,11 @@ export function generateK8sPods(
       cpuUsage: 5 + Math.random() * 80,
       memoryUsage: 10 + Math.random() * 70,
       containers,
-      labels: { app: prefix, version: 'v1' },
+      labels: {
+        app: prefix,
+        version: 'v1',
+        'apm-id': `810${Math.floor(Math.random() * 5) + 1}` // Mock APM ID
+      },
       createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
     };
   });

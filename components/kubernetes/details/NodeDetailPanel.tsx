@@ -14,7 +14,7 @@ interface NodeDetailPanelProps {
   onClose: () => void;
 }
 
-type TabType = 'summary' | 'performance' | 'topology' | 'topology-flow';
+type TabType = 'summary' | 'performance' | 'topology';
 
 export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('summary');
@@ -22,8 +22,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
   const tabs: { id: TabType; label: string }[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'performance', label: 'Performance' },
-    { id: 'topology', label: 'Topology Map' },
-    { id: 'topology-flow', label: 'Topology Flow' }
+    { id: 'topology', label: 'Topology Map' }
   ];
 
   const age = Math.floor((Date.now() - new Date(node.createdAt).getTime()) / (1000 * 60 * 60 * 24));
@@ -259,11 +258,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
           </Card>
         )}
 
-        {activeTab === 'topology-flow' && (
-          <div className="flex-1 h-[500px] min-h-[400px] bg-black rounded-lg border border-border overflow-hidden">
-            <ScopedSmartscape scope="node" id={node.id} label={node.name} />
-          </div>
-        )}
+
       </div>
     </div>
   );

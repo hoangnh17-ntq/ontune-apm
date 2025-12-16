@@ -14,7 +14,7 @@ interface NamespaceDetailPanelProps {
   onClose: () => void;
 }
 
-type TabType = 'summary' | 'performance' | 'topology' | 'topology-flow';
+type TabType = 'summary' | 'performance' | 'topology';
 
 export default function NamespaceDetailPanel({ namespace, onClose }: NamespaceDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('summary');
@@ -22,8 +22,7 @@ export default function NamespaceDetailPanel({ namespace, onClose }: NamespaceDe
   const tabs: { id: TabType; label: string }[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'performance', label: 'Performance' },
-    { id: 'topology', label: 'Topology Map' },
-    { id: 'topology-flow', label: 'Topology Flow' }
+    { id: 'topology', label: 'Topology Map' }
   ];
 
   const age = Math.floor((Date.now() - new Date(namespace.createdAt).getTime()) / (1000 * 60 * 60 * 24));
@@ -220,11 +219,7 @@ export default function NamespaceDetailPanel({ namespace, onClose }: NamespaceDe
           </Card>
         )}
 
-        {activeTab === 'topology-flow' && (
-          <div className="flex-1 h-[500px] min-h-[400px] bg-black rounded-lg border border-border overflow-hidden">
-            <ScopedSmartscape scope="namespace" id={namespace.name} label={namespace.name} />
-          </div>
-        )}
+
       </div>
     </div>
   );

@@ -273,7 +273,7 @@ const ScopedSmartscapeInternal = ({ scope, id, label }: ScopedSmartscapeProps) =
 
 
     return (
-        <div className="w-full h-full bg-[#111115] relative flex overflow-hidden border border-gray-800 rounded-lg">
+        <div className="w-full h-full bg-background relative flex overflow-hidden border border-border rounded-lg">
 
             {/* 1. Left Sidebar */}
             <SmartscapeSidebar
@@ -283,16 +283,16 @@ const ScopedSmartscapeInternal = ({ scope, id, label }: ScopedSmartscapeProps) =
             />
 
             {/* 2. Main Content */}
-            <div className="flex-1 flex flex-col relative h-full bg-[#111115]">
+            <div className="flex-1 flex flex-col relative h-full bg-background">
                 {/* Mini Header Over The Graph */}
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-2 pointer-events-none">
-                    <div className="bg-[#111115]/80 backdrop-blur px-3 py-1.5 rounded border border-white/10 flex items-center gap-2 pointer-events-auto">
+                    <div className="bg-background/80 backdrop-blur px-3 py-1.5 rounded border border-border flex items-center gap-2 pointer-events-auto">
                         <Cuboid size={14} className="text-blue-500" />
                         <span className="text-xs font-mono text-gray-300 uppercase">{scope}: {label}</span>
                     </div>
 
                     {/* View Switcher */}
-                    <div className="flex bg-[#111] border border-[#333] rounded-md p-0.5 gap-1 pointer-events-auto">
+                    <div className="flex bg-muted border border-border rounded-md p-0.5 gap-1 pointer-events-auto">
                         <Button
                             variant="ghost"
                             size="sm"
@@ -322,15 +322,15 @@ const ScopedSmartscapeInternal = ({ scope, id, label }: ScopedSmartscapeProps) =
                     fitView
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
-                    className="bg-[#111115]"
+                    className="bg-background"
                     minZoom={0.1}
                     maxZoom={2}
                     nodesDraggable={true}
                     nodesConnectable={false}
                     proOptions={{ hideAttribution: true }}
                 >
-                    <Background color="#222" gap={20} size={1} variant={BackgroundVariant.Dots} />
-                    <Controls className="bg-[#1e1e24] border-gray-800 text-white fill-white" showInteractive={false} />
+                    <Background color="#555" gap={20} size={1} variant={BackgroundVariant.Dots} />
+                    <Controls className="bg-card border-border text-foreground fill-foreground" showInteractive={false} />
                 </ReactFlow>
 
                 {/* Bottom Filter Bar */}

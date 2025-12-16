@@ -14,7 +14,7 @@ interface PodDetailPanelProps {
   onClose: () => void;
 }
 
-type TabType = 'summary' | 'performance' | 'topology' | 'topology-flow';
+type TabType = 'summary' | 'performance' | 'topology';
 
 export default function PodDetailPanel({ pod, onClose }: PodDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('summary');
@@ -22,8 +22,7 @@ export default function PodDetailPanel({ pod, onClose }: PodDetailPanelProps) {
   const tabs: { id: TabType; label: string }[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'performance', label: 'Performance' },
-    { id: 'topology', label: 'Topology Map' },
-    { id: 'topology-flow', label: 'Topology Flow' }
+    { id: 'topology', label: 'Topology Map' }
   ];
 
   const containerStats = {
@@ -330,11 +329,7 @@ export default function PodDetailPanel({ pod, onClose }: PodDetailPanelProps) {
           </Card>
         )}
 
-        {activeTab === 'topology-flow' && (
-          <div className="flex-1 h-[500px] min-h-[400px] bg-black rounded-lg border border-border overflow-hidden">
-            <ScopedSmartscape scope="pod" id={pod.id} label={pod.name} />
-          </div>
-        )}
+
       </div>
     </div>
   );
