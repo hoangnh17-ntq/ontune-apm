@@ -164,7 +164,7 @@ export default function SelectApplicationView({ currentTab, onAppClick }: Select
             </div>
             {filteredApps.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No applications found matching "{searchTerm}"
+                No applications found matching &quot;{searchTerm}&quot;
               </div>
             )}
           </CardContent>

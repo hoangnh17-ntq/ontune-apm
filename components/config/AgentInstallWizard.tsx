@@ -462,7 +462,7 @@ export default function AgentInstallWizard({ onClose }: AgentInstallWizardProps)
                 <div className="flex-1">
                   <div className="font-semibold text-blue-400 mb-1">Test Connection</div>
                   <div className="text-sm text-muted-foreground mb-3">
-                    After installing the agent, test the connection to verify it's working properly.
+                    After installing the agent, test the connection to verify it&apos;s working properly.
                   </div>
                   <Button
                     size="sm"

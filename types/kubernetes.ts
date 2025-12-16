@@ -1,6 +1,15 @@
 // Kubernetes Type Definitions
 
-export type KubernetesTab = 'overview' | 'cluster' | 'node' | 'pod' | 'namespace' | 'network' | 'storage' | 'workloads';
+export type KubernetesTab =
+  | 'overview'
+  | 'cluster'
+  | 'node'
+  | 'pod'
+  | 'namespace'
+  | 'network'
+  | 'storage'
+  | 'workloads'
+  | 'topology-flow';
 export type ResourceStatus = 'running' | 'error' | 'warning' | 'pending' | 'terminated' | 'unknown';
 export type HealthStatus = 'healthy' | 'warning' | 'critical';
 
@@ -199,4 +208,31 @@ export interface TopResource {
   name: string;
   value: number;
   unit?: string;
+}
+
+// Topology Flow Types
+export interface TopologyNode {
+  id: string;
+  type: 'cluster' | 'node' | 'pod' | 'container';
+  label: string;
+  parentId?: string;
+  status: ResourceStatus;
+  metrics?: {
+    cpu?: number;
+    memory?: number;
+  };
+  metadata?: Record<string, string>;
+}
+
+export interface TopologyEdge {
+  id: string;
+  source: string;
+  target: string;
+  type?: 'hierarchy' | 'network';
+}
+
+export interface K8sTopologyData {
+  clusters: ClusterSummary[];
+  nodes: NodeSummary[];
+  pods: PodSummary[];
 }

@@ -123,7 +123,7 @@ export default function TodayVisitsChart() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Today's Visits</CardTitle>
+            <CardTitle>{`Today's Visits`}</CardTitle>
             <CardDescription>
               <span className="text-2xl font-bold text-primary">{totalVisits.toLocaleString()}</span>
               <span className="text-xs text-muted-foreground ml-2">total visits today</span>

@@ -6,13 +6,14 @@ const createK8sData = () => {
     const edges: Edge[] = [];
     const layerYPositions: Record<string, number> = {};
 
-    const addNode = (id: string, label: string, type: 'namespace' | 'service' | 'workload' | 'pod' | 'node', x: number, y: number, level: number, subLabel?: string, notifications?: number, technology?: string, vulnerability?: string) => {
+    const addNode = (id: string, label: string, type: 'namespace' | 'service' | 'workload' | 'pod' | 'node' | 'external', x: number, y: number, level: number, subLabel?: string, notifications?: number, technology?: string, vulnerability?: string) => {
         // Levels: 
         // 1: Node (Bottom)
         // 2: Pod
         // 3: Workload
         // 4: Service
-        // 5: Namespace (Top)
+        // 5: Namespace
+        // 6: External
 
         const yPos = level * -250;
         layerYPositions[type] = yPos;

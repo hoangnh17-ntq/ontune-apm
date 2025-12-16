@@ -21,6 +21,15 @@ import {
   WasMetrics
 } from '@/types/apm';
 
+import type {
+  ClusterSummary,
+  NodeSummary,
+  PodSummary,
+  HealthStatus,
+  ResourceStatus,
+  K8sTopologyData
+} from '@/types/kubernetes';
+
 const methods: TransactionMethod[] = ['METHOD', 'SQL', 'HTTPC', 'DBC', 'SOCKET'];
 const endpoints = [
   '/api/users',
@@ -577,4 +586,136 @@ export function generateASMConfig(): ASMConfig {
       gcLogging: true
     }
   };
+}
+
+// ============================================
+// Kubernetes Mock Data Generators
+// ============================================
+
+const k8sClusterNames = ['kubernetes-211-2', 'kubernetes_163', 'jslee-k3s', 'be-k8s'];
+const k8sVersions = ['v1.28.2', 'v1.27.5', 'v1.28.0+k3s1', 'v1.29.0'];
+const containerImages = [
+  'nginx:1.25',
+  'redis:7.2',
+  'postgres:15',
+  'node:20-alpine',
+  'python:3.11-slim',
+  'java:17-jdk',
+  'go:1.21-alpine'
+];
+
+export function generateK8sClusters(count: number = 2): ClusterSummary[] {
+  return Array.from({ length: count }, (_, idx) => {
+    const healthRoll = Math.random();
+    const status: HealthStatus = healthRoll > 0.9 ? 'critical' : healthRoll > 0.7 ? 'warning' : 'healthy';
+
+    return {
+      id: `cluster-${idx + 1}`,
+      name: k8sClusterNames[idx % k8sClusterNames.length],
+      version: k8sVersions[idx % k8sVersions.length],
+      status,
+      nodeCount: 2 + Math.floor(Math.random() * 4),
+      podCount: 20 + Math.floor(Math.random() * 100),
+      namespaceCount: 3 + Math.floor(Math.random() * 6),
+      cpuUsage: 20 + Math.random() * 60,
+      memoryUsage: 30 + Math.random() * 50,
+      createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
+    };
+  });
+}
+
+export function generateK8sNodes(clusterId: string, clusterName: string, count: number = 3): NodeSummary[] {
+  return Array.from({ length: count }, (_, idx) => {
+    const statusRoll = Math.random();
+    const status: ResourceStatus = statusRoll > 0.95 ? 'error' : statusRoll > 0.85 ? 'warning' : 'running';
+    const role: NodeSummary['role'] = idx === 0 ? 'master' : 'worker';
+
+    return {
+      id: `${clusterId}-node-${idx + 1}`,
+      name: `${clusterName}-node-${idx + 1}`,
+      clusterId,
+      clusterName,
+      status,
+      role,
+      version: k8sVersions[Math.floor(Math.random() * k8sVersions.length)],
+      osImage: 'Ubuntu 22.04.3 LTS',
+      containerRuntime: 'containerd://1.6.24',
+      cpuCapacity: 4 + Math.floor(Math.random() * 12),
+      memoryCapacity: 8 + Math.floor(Math.random() * 24),
+      cpuUsage: 15 + Math.random() * 70,
+      memoryUsage: 20 + Math.random() * 60,
+      podCount: 5 + Math.floor(Math.random() * 20),
+      conditions: [
+        { type: 'Ready', status: status === 'running' ? 'True' : 'False' },
+        { type: 'MemoryPressure', status: 'False' },
+        { type: 'DiskPressure', status: 'False' }
+      ],
+      labels: {
+        'kubernetes.io/os': 'linux',
+        ...(role === 'master' ? { 'node-role.kubernetes.io/master': '' } : { 'node-role.kubernetes.io/worker': '' })
+      },
+      createdAt: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString()
+    };
+  });
+}
+
+export function generateK8sPods(
+  clusterId: string,
+  clusterName: string,
+  nodeName: string,
+  count: number = 5
+): PodSummary[] {
+  const namespaces = ['default', 'kube-system', 'monitoring', 'app'];
+  const podPrefixes = ['nginx', 'redis', 'api-server', 'worker', 'scheduler', 'db-proxy'];
+
+  return Array.from({ length: count }, (_, idx) => {
+    const statusRoll = Math.random();
+    const status: ResourceStatus = statusRoll > 0.92 ? 'error' : statusRoll > 0.85 ? 'warning' : 'running';
+    const phase: PodSummary['phase'] = status === 'running' ? 'Running' : status === 'error' ? 'Failed' : 'Pending';
+    const prefix = podPrefixes[Math.floor(Math.random() * podPrefixes.length)];
+    const suffix = Math.random().toString(36).substring(2, 7);
+
+    const containerCount = 1 + Math.floor(Math.random() * 3);
+    const containers: PodSummary['containers'] = Array.from({ length: containerCount }, (__, cIdx) => ({
+      name: cIdx === 0 ? prefix : `sidecar-${cIdx}`,
+      image: containerImages[Math.floor(Math.random() * containerImages.length)],
+      status,
+      restarts: Math.floor(Math.random() * 5)
+    }));
+
+    return {
+      id: `${clusterId}-${nodeName}-pod-${idx + 1}`,
+      name: `${prefix}-${suffix}`,
+      namespace: namespaces[Math.floor(Math.random() * namespaces.length)],
+      clusterId,
+      clusterName,
+      nodeName,
+      status,
+      phase,
+      restartCount: containers.reduce((sum, c) => sum + c.restarts, 0),
+      cpuUsage: 5 + Math.random() * 80,
+      memoryUsage: 10 + Math.random() * 70,
+      containers,
+      labels: { app: prefix, version: 'v1' },
+      createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+    };
+  });
+}
+
+export function generateK8sTopologyData(): K8sTopologyData {
+  const clusters = generateK8sClusters(2);
+  const nodes: NodeSummary[] = [];
+  const pods: PodSummary[] = [];
+
+  clusters.forEach((cluster) => {
+    const clusterNodes = generateK8sNodes(cluster.id, cluster.name, cluster.nodeCount);
+    nodes.push(...clusterNodes);
+
+    clusterNodes.forEach((node) => {
+      const nodePods = generateK8sPods(cluster.id, cluster.name, node.name, node.podCount);
+      pods.push(...nodePods);
+    });
+  });
+
+  return { clusters, nodes, pods };
 }
